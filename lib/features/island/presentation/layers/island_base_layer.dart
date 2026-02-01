@@ -139,8 +139,14 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   Widget build(BuildContext context) {
     final w = widget.width;
     
-    // LIGHTING LOGIC: Only active when Night Theme AND Focusing
-    final bool enableLights = widget.currentTheme == AppThemeMode.night && widget.isFocusing;
+    // LIGHTING LOGIC: Variable Intensity
+    // Day: 0.0
+    // Night Idle: 0.3 (Soft glow)
+    // Night Focus: 0.8 (Brighter, more welcoming)
+    double lightIntensity = 0.0;
+    if (widget.currentTheme == AppThemeMode.night) {
+       lightIntensity = widget.isFocusing ? 0.8 : 0.3;
+    }
 
     return Container(
       width: w,
@@ -185,14 +191,14 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
           Positioned(
             bottom: w * 0.48, 
             left: w * 0.05,  
-            child: CalmHouseWidget(size: w * 0.50, enableLights: enableLights), 
+            child: CalmHouseWidget(size: w * 0.50, lightIntensity: lightIntensity), 
           ),
 
           // 2.5 GARDEN LAMP (New)
           Positioned(
              bottom: w * 0.49,
              right: w * 0.28, // Near tree
-             child: CalmGardenLamp(size: w * 0.08, enableLights: enableLights),
+             child: CalmGardenLamp(size: w * 0.08, lightIntensity: lightIntensity),
           ),
 
           // 3. TREES
@@ -286,12 +292,12 @@ class CalmIslandPainter extends CustomPainter {
 
 class CalmHouseWidget extends StatelessWidget {
   final double size;
-  final bool enableLights; // Renamed from isFocusing for clarity
+  final double lightIntensity; 
   
   const CalmHouseWidget({
     super.key, 
     required this.size,
-    required this.enableLights,
+    required this.lightIntensity,
   });
   
   @override
@@ -302,7 +308,7 @@ class CalmHouseWidget extends StatelessWidget {
       child: TweenAnimationBuilder<double>(
         tween: Tween<double>(
           begin: 0.0, 
-          end: enableLights ? 0.6 : 0.0 // Target Opacity for Light
+          end: lightIntensity // Animate to target intensity
         ),
         duration: const Duration(milliseconds: 1200),
         builder: (context, lightOpacity, child) {
@@ -380,14 +386,14 @@ class _CalmHousePainter extends CustomPainter {
 // 2.5 GARDEN LAMP
 class CalmGardenLamp extends StatelessWidget {
   final double size;
-  final bool enableLights;
+  final double lightIntensity;
   
-  const CalmGardenLamp({super.key, required this.size, required this.enableLights});
+  const CalmGardenLamp({super.key, required this.size, required this.lightIntensity});
   
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.0, end: enableLights ? 0.7 : 0.0), // Max Opacity 0.7
+      tween: Tween<double>(begin: 0.0, end: lightIntensity), 
       duration: const Duration(milliseconds: 1200),
       builder: (context, opacity, child) {
          return CustomPaint(

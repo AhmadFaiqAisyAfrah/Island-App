@@ -41,7 +41,7 @@ class IslandVisualStack extends StatelessWidget {
                 curve: Curves.easeInOutSine,
                 tween: Tween(
                   begin: 1.0, 
-                  end: isFocusing ? 1.05 : 1.0
+                  end: isFocusing ? 1.03 : 1.0 // Reduced zoom to 1.03 (Subtle)
                 ), 
                 builder: (context, scale, child) {
                   return Transform.scale(
@@ -50,21 +50,11 @@ class IslandVisualStack extends StatelessWidget {
                       isFocusing: isFocusing, 
                       currentTheme: currentTheme,
                       width: w * 0.75
-                    ), // REDUCED SCALE (0.9 -> 0.75)
+                    ), 
                   );
                 },
               ),
             ),
-
-            // 4. WARMTH OVERLAY (Focus State only)
-            if (isFocusing)
-              IgnorePointer(
-                child: AnimatedOpacity(
-                  duration: const Duration(seconds: 4),
-                  opacity: 0.15, // Subtle warm tint
-                  child: Container(color: AppColors.warmOverlay),
-                ),
-              ),
           ],
         );
       },
