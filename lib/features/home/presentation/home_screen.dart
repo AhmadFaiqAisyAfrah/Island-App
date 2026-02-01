@@ -7,6 +7,8 @@ import '../../navigation/presentation/island_drawer.dart';
 import '../../timer/domain/timer_logic.dart';
 import '../../focus_guide/data/quotes_repository.dart';
 
+import '../../../../core/theme/theme_provider.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -15,12 +17,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // ... (Code omitted for brevity)
   String _currentQuote = "Ready to focus?";
 
   @override
   void initState() {
     super.initState();
-    // Initialize with a gentle greeting
     _currentQuote = QuotesRepository.getRandomQuote();
   }
 
@@ -39,7 +41,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
+    final themeMode = ref.watch(themeProvider);
     final isFocusing = timerState.status == TimerStatus.running;
+    final isNight = themeMode == AppThemeMode.night;
 
     // Listen for completion
     ref.listen(timerProvider, (previous, next) {
@@ -74,16 +78,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           // 1. SKY / OCEAN ATMOSPHERE (Global Gradient)
           Positioned.fill(
-             child: Container(
-                decoration: const BoxDecoration(
+             child: AnimatedContainer(
+                duration: const Duration(milliseconds: 1200), // Smooth slow transition
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      CalmPalette.skyTop,     // 0.0
-                      CalmPalette.skyMist,    // 0.5
-                      CalmPalette.deepWater,  // 1.0 (Sea Floor)
-                    ],
+                    colors: isNight 
+                      ? const [ // NIGHT THEME
+                          CalmPalette.nightSkyTop,
+                          CalmPalette.nightSkyMist,
+                          CalmPalette.nightDeepWater,
+                        ]
+                      : const [ // DAY THEME
+                          CalmPalette.skyTop,
+                          CalmPalette.skyMist,
+                          CalmPalette.deepWater,
+                        ],
                   )
                 )
              )
@@ -91,7 +103,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           // 2. The Living Island (Midground)
           Positioned.fill(
-            child: IslandVisualStack(isFocusing: isFocusing),
+            child: IslandVisualStack(
+              isFocusing: isFocusing,
+              currentTheme: themeMode,
+            ),
           ),
           
           // 3. UI Layer (Safe Area)

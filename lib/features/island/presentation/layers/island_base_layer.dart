@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_provider.dart';
 
 // --- CALM VISUAL CONSTANTS ---
 class CalmPalette {
@@ -11,6 +12,15 @@ class CalmPalette {
   static const Color skyMist = Color(0xFFB0BEC5);   // Mid Blue-Grey (Horizon) - NO CREAM
   static const Color deepWater = Color(0xFF78909C); // Darker Blue-Grey (Depth)
   
+  // Night Theme (Focus State)
+  static const Color nightSkyTop = Color(0xFF37474F);    // Deep Calm Blue-Grey
+  static const Color nightSkyMist = Color(0xFF546E7A);   // Muted Slate
+
+  static const Color nightDeepWater = Color(0xFF263238); // Abyss
+  
+  // Lighting
+  static const Color lightWarm = Color(0xFFFFE082);      // Soft Amber/Yellow Glow (Low Intensity)
+
   // Nature
   static const Color grassBase = Color(0xFF8DA399); // Sage Green
   static const Color grassHighlight = Color(0xFF9FB5AB); // Restored
@@ -33,12 +43,14 @@ class CalmPalette {
 }
 
 class IslandBaseLayer extends StatefulWidget {
-  final bool isFocusing;
+  final bool isFocusing; // ACTION
+  final AppThemeMode currentTheme; // WORLD STATE
   final double width;
 
   const IslandBaseLayer({
     super.key,
     required this.isFocusing,
+    required this.currentTheme,
     required this.width,
   });
 
@@ -47,6 +59,7 @@ class IslandBaseLayer extends StatefulWidget {
 }
 
 class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderStateMixin {
+  // ... (Keep existing animation controllers)
   late AnimationController _patrolController;
   late AnimationController _walkCycleController;
   
@@ -81,6 +94,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     }
   }
   
+  // ... (Keep existing methods: _startAnimations, _stopAnimations, _scheduleBehavior)
   void _startAnimations() {
     _scheduleBehavior();
   }
@@ -125,6 +139,9 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   Widget build(BuildContext context) {
     final w = widget.width;
     
+    // LIGHTING LOGIC: Only active when Night Theme AND Focusing
+    final bool enableLights = widget.currentTheme == AppThemeMode.night && widget.isFocusing;
+
     return Container(
       width: w,
       height: w, 
@@ -138,7 +155,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
         children: [
           // 0. SOFT FLOATING SHADOW (Atmospheric Grounding)
           Positioned(
-             bottom: w * 0.05, // Moved lower to detach slightly
+             bottom: w * 0.05, 
              child: Container(
                width: w * 0.9,
                height: w * 0.3,
@@ -148,7 +165,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                      CalmPalette.deepWater.withOpacity(0.12), // Subtle Blue-Grey tint
                      Colors.transparent,
                    ],
-                   radius: 1.0, // Very soft spread
+                   radius: 1.0, 
                  ),
                ),
              ),
@@ -168,7 +185,14 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
           Positioned(
             bottom: w * 0.48, 
             left: w * 0.05,  
-            child: CalmHouseWidget(size: w * 0.50), 
+            child: CalmHouseWidget(size: w * 0.50, enableLights: enableLights), 
+          ),
+
+          // 2.5 GARDEN LAMP (New)
+          Positioned(
+             bottom: w * 0.49,
+             right: w * 0.28, // Near tree
+             child: CalmGardenLamp(size: w * 0.08, enableLights: enableLights),
           ),
 
           // 3. TREES
@@ -262,14 +286,40 @@ class CalmIslandPainter extends CustomPainter {
 
 class CalmHouseWidget extends StatelessWidget {
   final double size;
-  const CalmHouseWidget({super.key, required this.size});
+  final bool enableLights; // Renamed from isFocusing for clarity
+  
+  const CalmHouseWidget({
+    super.key, 
+    required this.size,
+    required this.enableLights,
+  });
+  
   @override
   Widget build(BuildContext context) {
-    return SizedBox(width: size, height: size * 0.7, child: CustomPaint(painter: _CalmHousePainter()));
+    return SizedBox(
+      width: size, 
+      height: size * 0.7, 
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(
+          begin: 0.0, 
+          end: enableLights ? 0.6 : 0.0 // Target Opacity for Light
+        ),
+        duration: const Duration(milliseconds: 1200),
+        builder: (context, lightOpacity, child) {
+          return CustomPaint(
+            painter: _CalmHousePainter(lightOpacity: lightOpacity)
+          );
+        }
+      )
+    );
   }
 }
 
 class _CalmHousePainter extends CustomPainter {
+  final double lightOpacity;
+  
+  _CalmHousePainter({required this.lightOpacity});
+  
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
@@ -293,13 +343,100 @@ class _CalmHousePainter extends CustomPainter {
     paint.color = CalmPalette.houseDoor.withOpacity(0.8);
     canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.45, h * 0.65, w * 0.15, h * 0.35), const Radius.circular(2)), paint);
     
+    // Door Light (Bottom)
+    if (lightOpacity > 0) {
+       paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.8); 
+       // Soft spill on ground/door
+       canvas.drawOval(Rect.fromLTWH(w * 0.45, h * 0.9, w * 0.15, h * 0.05), paint);
+    }
+    
     // Windows
-    paint.color = Colors.white.withOpacity(0.3);
+    // Day Mode: Reflection (White/Blue)
+    // Night Mode: Warm Light
+    final Color windowColor = Color.lerp(
+      Colors.white.withOpacity(0.3), 
+      CalmPalette.lightWarm, 
+      lightOpacity
+    )!;
+    
+    paint.color = windowColor.withOpacity(0.3 + (lightOpacity * 0.4)); // Brighter at night
+    
     canvas.drawCircle(Offset(w * 0.25, h * 0.65), w * 0.06, paint);
     canvas.drawCircle(Offset(w * 0.75, h * 0.65), w * 0.06, paint);
+    
+    // Window Light Bloom (Subtle)
+    if (lightOpacity > 0) {
+       paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.5);
+       paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
+       canvas.drawCircle(Offset(w * 0.25, h * 0.65), w * 0.08, paint);
+       canvas.drawCircle(Offset(w * 0.75, h * 0.65), w * 0.08, paint);
+       paint.maskFilter = null;
+    }
   }
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CalmHousePainter oldDelegate) => lightOpacity != oldDelegate.lightOpacity;
+}
+
+// 2.5 GARDEN LAMP
+class CalmGardenLamp extends StatelessWidget {
+  final double size;
+  final bool enableLights;
+  
+  const CalmGardenLamp({super.key, required this.size, required this.enableLights});
+  
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: enableLights ? 0.7 : 0.0), // Max Opacity 0.7
+      duration: const Duration(milliseconds: 1200),
+      builder: (context, opacity, child) {
+         return CustomPaint(
+           size: Size(size, size * 2), // Tall thin lamp
+           painter: _CalmGardenLampPainter(lightOpacity: opacity)
+         );
+      }
+    );
+  }
+}
+
+class _CalmGardenLampPainter extends CustomPainter {
+  final double lightOpacity;
+  const _CalmGardenLampPainter({required this.lightOpacity});
+  
+  @override 
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+    
+    // Post (Always visible but subtle)
+    paint.color = CalmPalette.cliffShadow;
+    canvas.drawRect(Rect.fromLTWH(w * 0.4, h * 0.2, w * 0.2, h * 0.8), paint);
+    
+    // Lamp Head
+    paint.color = CalmPalette.houseRoof;
+    canvas.drawOval(Rect.fromLTWH(w * 0.2, h * 0.1, w * 0.6, h * 0.2), paint);
+    
+    // Light Source (Only when Opacity > 0)
+    if (lightOpacity > 0) {
+      paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity);
+      
+      // 1. Bulb (Small bright center)
+      canvas.drawCircle(Offset(w * 0.5, h * 0.25), w * 0.15, paint);
+      
+      // 2. Glow (Soft Blur)
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 12.0);
+      paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.6);
+      canvas.drawCircle(Offset(w * 0.5, h * 0.25), w * 1.5, paint); // Wide soft glow
+      
+      // 3. Ground Reflection
+      canvas.drawOval(Rect.fromCenter(center: Offset(w*0.5, h*0.95), width: w*2.0, height: w*0.5), paint);
+      
+      paint.maskFilter = null;
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _CalmGardenLampPainter oldDelegate) => lightOpacity != oldDelegate.lightOpacity;
 }
 
 class CalmTreeWidget extends StatefulWidget {

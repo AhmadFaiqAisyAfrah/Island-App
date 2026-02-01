@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
-class IslandDrawer extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/theme_provider.dart';
+
+class IslandDrawer extends ConsumerWidget {
   const IslandDrawer({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentTheme = ref.watch(themeProvider);
+    
     return Drawer(
-      backgroundColor: AppColors.skyBottom, // Matches app background
-      elevation: 0, // Flat
+      backgroundColor: AppColors.skyBottom, 
+      elevation: 0, 
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topRight: Radius.circular(20),
@@ -22,35 +27,23 @@ class IslandDrawer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Text(
-                "Island",
-                style: AppTextStyles.heading.copyWith(fontSize: 28),
-              ),
+              Text("Island", style: AppTextStyles.heading.copyWith(fontSize: 28)),
               const SizedBox(height: 8),
-              Text(
-                "Your quiet place.",
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textSub,
-                  fontSize: 14,
-                ),
-              ),
+              Text("Your quiet place.", style: AppTextStyles.body.copyWith(color: AppColors.textSub, fontSize: 14)),
               const SizedBox(height: 64),
               
               // Menu Items
               _DrawerItem(
                 label: "Island",
                 isActive: true,
-                onTap: () => Navigator.pop(context), // Close drawer (already home)
+                onTap: () => Navigator.pop(context), 
               ),
               _DrawerItem(
                 label: "Themes",
-                isActive: false,
+                isActive: false, // Could highlight if currentTheme != day, but let's keep simple
                 onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (_) => const PlaceholderScreen(title: "Themes"))
-                  );
+                  Navigator.pop(context); // Close drawer
+                  _showThemeSelector(context);
                 },
               ),
               _DrawerItem(
@@ -64,6 +57,88 @@ class IslandDrawer extends StatelessWidget {
                   );
                 },
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showThemeSelector(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => const ThemeSelectorDialog(),
+    );
+  }
+}
+
+class ThemeSelectorDialog extends ConsumerWidget {
+  const ThemeSelectorDialog({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(themeProvider);
+    
+    return AlertDialog(
+      backgroundColor: AppColors.skyBottom,
+      title: Text("Select Atmosphere", style: AppTextStyles.heading.copyWith(fontSize: 20)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ThemeOption(
+            label: "Day (Default)",
+            isSelected: current == AppThemeMode.day,
+            onTap: () {
+              ref.read(themeProvider.notifier).setMode(AppThemeMode.day);
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox(height: 16),
+          _ThemeOption(
+            label: "Night",
+            isSelected: current == AppThemeMode.night,
+            onTap: () {
+              ref.read(themeProvider.notifier).setMode(AppThemeMode.night);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    );
+  }
+}
+
+class _ThemeOption extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  
+  const _ThemeOption({required this.label, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isSelected ? AppColors.islandGrass.withOpacity(0.2) : Colors.transparent,
+      // borderRadius removed (conflict with shape)
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isSelected 
+          ? const BorderSide(color: AppColors.islandGrass, width: 2) 
+          : const BorderSide(color: Colors.transparent, width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          child: Row(
+            children: [
+              Text(label, style: AppTextStyles.subHeading.copyWith(color: AppColors.textMain)),
+              const Spacer(),
+              if (isSelected) 
+                Icon(Icons.check_circle, color: AppColors.islandGrass, size: 20),
             ],
           ),
         ),

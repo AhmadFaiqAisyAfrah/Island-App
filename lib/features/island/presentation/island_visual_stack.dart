@@ -4,12 +4,16 @@ import 'layers/sky_layer.dart';
 import 'layers/ocean_layer.dart';
 import 'layers/island_base_layer.dart';
 
+import '../../../../core/theme/theme_provider.dart';
+
 class IslandVisualStack extends StatelessWidget {
   final bool isFocusing;
+  final AppThemeMode currentTheme;
 
   const IslandVisualStack({
     super.key,
     required this.isFocusing,
+    required this.currentTheme,
   });
 
   @override
@@ -42,7 +46,11 @@ class IslandVisualStack extends StatelessWidget {
                 builder: (context, scale, child) {
                   return Transform.scale(
                     scale: scale,
-                    child: IslandBaseLayer(isFocusing: isFocusing, width: w * 0.75), // REDUCED SCALE (0.9 -> 0.75)
+                    child: IslandBaseLayer(
+                      isFocusing: isFocusing, 
+                      currentTheme: currentTheme,
+                      width: w * 0.75
+                    ), // REDUCED SCALE (0.9 -> 0.75)
                   );
                 },
               ),
