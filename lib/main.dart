@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
-import 'features/home/presentation/home_screen.dart';
+import 'features/splash/presentation/splash_screen.dart';
 
 void main() {
   runApp(
@@ -22,7 +22,7 @@ class IslandApp extends StatelessWidget {
       theme: AppTheme.pastelTheme,
       // Enforce the pastel theme for the MVP visual consistency
       themeMode: ThemeMode.light, 
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }
