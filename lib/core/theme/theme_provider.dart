@@ -11,6 +11,7 @@ enum AppSeason {
   normal,
   sakura,
   autumn,
+  winter,
 }
 
 @immutable

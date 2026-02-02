@@ -152,6 +152,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
 
+                // DAY/NIGHT TOGGLE (Top-Right) - Only when idle
+                if (!isFocusing)
+                  Positioned(
+                    top: 16,
+                    right: 24,
+                    child: IconButton(
+                      icon: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                        child: Icon(
+                          isNight ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                          key: ValueKey(isNight),
+                          size: 26,
+                        ),
+                      ),
+                      color: AppColors.textMain.withOpacity(0.6), 
+                      tooltip: isNight ? 'Switch over to Day' : 'Switch over to Night',
+                      onPressed: () => ref.read(themeProvider.notifier).toggleMode(),
+                    ),
+                  ),
+
                 // Main Layout (Centered Quote & Bottom Controls)
                 Positioned.fill(
                   child: Column(
@@ -314,25 +335,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // Helper for background colors
   List<Color> _getBackgroundColors(ThemeState state) {
-    if (state.mode == AppThemeMode.night) {
-      return const [
-        CalmPalette.nightSkyTop,
-        CalmPalette.nightSkyMist,
-        CalmPalette.nightDeepWater,
-      ];
-    }
-    
-    // Day Modes
-    if (state.season == AppSeason.autumn) {
-      return const [
-        CalmPalette.autumnSky,
-        Color(0xFFE2DDD9), // Warm mist intermediate (Beige-Grey)
-        CalmPalette.autumnMist,
-        CalmPalette.autumnGround, 
-      ];
+    final bool isNight = state.mode == AppThemeMode.night;
+    final season = state.season;
+
+    // 1. NIGHT MODES (Unified Premium Night)
+    if (isNight) {
+       // All seasons share the premium deep winter night aesthetic
+       // This ensures consistency and quality.
+       return [CalmPalette.winterNightTop, CalmPalette.winterNightBot];
     }
 
-    // Default Day (Original)
+    // 2. WINTER DAY
+    if (season == AppSeason.winter) {
+      return [CalmPalette.winterSky, CalmPalette.winterDayMist];
+    }
+    
+    // 3. AUTUMN DAY
+    if (season == AppSeason.autumn) {
+       return const [
+         CalmPalette.autumnSky,
+         Color(0xFFE2DDD9), 
+         CalmPalette.autumnMist,
+         CalmPalette.autumnGround, 
+       ];
+    }
+
+    // 4. NORMAL / SAKURA DAY
     return const [
       CalmPalette.skyTop,
       Color(0xFFE8EEF2),

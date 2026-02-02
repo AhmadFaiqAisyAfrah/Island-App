@@ -127,6 +127,12 @@ class ThemeSelectorDialog extends ConsumerWidget {
               isSelected: state.season == AppSeason.autumn,
               onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.autumn),
             ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Winter",
+              isSelected: state.season == AppSeason.winter,
+              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.winter),
+            ),
           ],
         ),
       ),
