@@ -9,6 +9,8 @@ import '../../focus_guide/data/quotes_repository.dart';
 
 import '../../../../core/theme/theme_provider.dart';
 
+import 'dart:math' as math; // Add math import
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -85,17 +87,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
+                    // DAY FIX: Unified Smooth Gradient to prevent banding
+                    // NIGHT: Deep gradient
                     colors: isNight 
                       ? const [ // NIGHT THEME
                           CalmPalette.nightSkyTop,
                           CalmPalette.nightSkyMist,
                           CalmPalette.nightDeepWater,
                         ]
-                      : const [ // DAY THEME
+                      : const [ // DAY THEME (Refined for Smoothness)
                           CalmPalette.skyTop,
+                          Color(0xFFE8EEF2), // New: Intermediate step
                           CalmPalette.skyMist,
                           CalmPalette.deepWater,
                         ],
+                     // DAY FIX: More steps for smoother distribution
+                     stops: isNight ? null : [0.0, 0.4, 0.7, 1.0], 
                   )
                 )
              )
@@ -105,8 +112,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Positioned.fill(
             child: IslandVisualStack(
               isFocusing: isFocusing,
-              themeState: themeState,
+              themeState: themeState, // Passed down
             ),
+          ),
+          
+          // 2.5 VIGNETTE & NOISE LAYER (Contrast & Anti-Banding for Day Theme)
+          // Always present but subtle, ensures White Text is widely readable.
+          Positioned.fill(
+             child: IgnorePointer( // Allow clicks to pass through
+               child: Stack(
+                 fit: StackFit.expand,
+                 children: [
+                   // A. VIGNETTE (Top/Bottom Darkening)
+                   Container(
+                     decoration: BoxDecoration(
+                       gradient: LinearGradient(
+                         begin: Alignment.topCenter,
+                         end: Alignment.bottomCenter,
+                         colors: [
+                           Colors.black.withOpacity(0.15), // Top Contrast
+                           Colors.transparent,
+                           Colors.transparent,
+                           Colors.black.withOpacity(0.20), // Bottom Contrast
+                         ],
+                         stops: const [0.0, 0.25, 0.75, 1.0],
+                       ),
+                     ),
+                   ),
+                   // B. NOISE (Breaks Color Banding)
+                   CustomPaint(painter: _NoisePainter()),
+                 ],
+               ),
+             ),
           ),
           
           // 3. UI Layer (Safe Area)
@@ -158,6 +195,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     fontSize: 18,
                                     fontStyle: FontStyle.italic,
                                     letterSpacing: 0.5,
+                                    shadows: AppTextStyles.softShadow, // Subtle reinforcement
                                   ),
                                 ),
                               )
@@ -166,9 +204,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 child: Text( 
                                   "Your quiet place.",
                                   style: AppTextStyles.subHeading.copyWith(
-                                    color: Colors.white.withOpacity(0.8), // Tagline: Lower Opacity
-                                    letterSpacing: 1.2, // Increased spacing
+                                    color: Colors.white.withOpacity(0.85), // Slightly boosted
+                                    letterSpacing: 1.2, 
                                     fontWeight: FontWeight.w400,
+                                    shadows: AppTextStyles.softShadow,
                                   ),
                                 ),
                               ),
@@ -197,9 +236,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 color: Colors.white.withOpacity(0.9), // 90% Opacity
                                 letterSpacing: 4.0, // Slightly wider for elegance
                                 height: 1.0, // Tighten line height for optical centering
-                                shadows: [], // Remove shadows
+                                shadows: AppTextStyles.softShadow, // Re-added soft shadow for readability
                               ),
-                            ),
+                             ),
                             
                             // DURATION SLIDER (Idle Only)
                             if (!isFocusing)
@@ -285,4 +324,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+}
+
+// --- PAINTERS ---
+
+class _NoisePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Generate static noise to break gradient banding
+    final random = math.Random(42); // Seeded for static consistency
+    final paint = Paint();
+    final w = size.width;
+    final h = size.height;
+    
+    // Low density noise
+    for (int i = 0; i < 2000; i++) {
+      paint.color = Colors.white.withOpacity(random.nextDouble() * 0.03); // Tiny white specks
+      canvas.drawCircle(Offset(random.nextDouble() * w, random.nextDouble() * h), 1.0, paint);
+      
+      paint.color = Colors.black.withOpacity(random.nextDouble() * 0.02); // Tiny dark specks
+      canvas.drawCircle(Offset(random.nextDouble() * w, random.nextDouble() * h), 1.0, paint);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

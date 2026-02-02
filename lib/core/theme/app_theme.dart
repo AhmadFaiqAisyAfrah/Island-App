@@ -46,6 +46,14 @@ class AppTextStyles {
     letterSpacing: 2.0,
     color: AppColors.textMain,
   );
+
+  static List<Shadow> get softShadow => [
+    Shadow(
+      color: Colors.black.withOpacity(0.1),
+      blurRadius: 8.0,
+      offset: const Offset(0, 2),
+    ),
+  ];
 }
 
 class AppTheme {

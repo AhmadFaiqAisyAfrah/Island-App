@@ -8,9 +8,10 @@ import '../../../../core/theme/theme_provider.dart';
 class CalmPalette {
   // Atmospheric Gradient Colors
   // KEY: All colors must share a hue family (Blue-Grey) to blend perfectly.
-  static const Color skyTop = Color(0xFFCFD8DC);    // Light Blue-Grey (Sky)
-  static const Color skyMist = Color(0xFFB0BEC5);   // Mid Blue-Grey (Horizon) - NO CREAM
-  static const Color deepWater = Color(0xFF78909C); // Darker Blue-Grey (Depth)
+  // UPDATE: Brighter, smoother transition for Day Theme
+  static const Color skyTop = Color(0xFFF0F4F7);    // Very light airy blue-white
+  static const Color skyMist = Color(0xFFE1E7EB);   // Soft cloud grey
+  static const Color deepWater = Color(0xFFC2CCD3); // Muted light blue-grey (No dark banding)
   
   // Night Theme (Focus State)
   static const Color nightSkyTop = Color(0xFF37474F);    // Deep Calm Blue-Grey
@@ -27,7 +28,7 @@ class CalmPalette {
   
   // Cliff now has a gradient, these are the stops
   static const Color cliffTop = Color(0xFF6D6466);  // Warm Grey
-  static const Color cliffBottom = Color(0xFF78909C); // Matches deepWater exactly!
+  static const Color cliffBottom = Color(0xFFC2CCD3); // Matches deepWater exactly!
   static const Color cliffShadow = Color(0xFF585052); // Restored
   
   static const Color sandBase = Color(0xFFE0D8CC);  
