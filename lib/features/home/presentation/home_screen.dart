@@ -47,6 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final themeState = ref.watch(themeProvider); // Returns ThemeState object now
     final isFocusing = timerState.status == TimerStatus.running;
     final isNight = themeState.mode == AppThemeMode.night;
+    final bgColors = _getBackgroundColors(themeState);
 
     // Listen for completion
     ref.listen(timerProvider, (previous, next) {
@@ -88,9 +89,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: _getBackgroundColors(themeState),
+                    colors: bgColors,
                      // DAY/AUTUMN: Smooth steps. NIGHT: Standard.
-                     stops: isNight ? null : [0.0, 0.4, 0.7, 1.0], 
+                     stops: isNight ? null : (bgColors.length == 4 ? [0.0, 0.4, 0.7, 1.0] : [0.0, 1.0]), 
                   )
                 )
              )
@@ -288,42 +289,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             if (isFocusing) const SizedBox(height: 64), // Increased spacing
 
                             // Primary Action Button
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  width: isFocusing ? 140 : 200, 
-                                  height: 68, // Increased height (+4px)
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isFocusing ? Colors.white.withOpacity(0.2) : AppColors.islandGrass,
-                                      foregroundColor: Colors.white, // Always White Text
-                                      elevation: isFocusing ? 0 : 4,
-                                      shadowColor: AppColors.islandCliff.withOpacity(0.4),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(34), // Adjusted for height
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      if (isFocusing) {
-                                        ref.read(timerProvider.notifier).reset();
-                                      } else {
-                                        _updateQuote(); 
-                                        ref.read(timerProvider.notifier).start();
-                                      }
-                                    },
-                                    child: Text(
-                                      isFocusing ? "Stop" : "Begin Focus",
-                                      style: AppTextStyles.subHeading.copyWith(
-                                        color: Colors.white, // Explicitly White
-                                        fontSize: 18, // Increased Size (+1 step)
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }
+                            _AnimatedFocusButton(
+                               isFocusing: isFocusing,
+                               themeState: themeState,
+                               onTap: () {
+                                 if (isFocusing) {
+                                   ref.read(timerProvider.notifier).reset();
+                                 } else {
+                                   _updateQuote(); 
+                                   ref.read(timerProvider.notifier).start();
+                                 }
+                               },
                             ),
                           ],
                         ),
@@ -426,4 +402,137 @@ class _NoisePainter extends CustomPainter {
   }
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// --- WIDGETS ---
+
+class _AnimatedFocusButton extends StatefulWidget {
+  final bool isFocusing;
+  final ThemeState themeState;
+  final VoidCallback onTap;
+
+  const _AnimatedFocusButton({
+    required this.isFocusing,
+    required this.themeState,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedFocusButton> createState() => _AnimatedFocusButtonState();
+}
+
+class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, 
+        duration: const Duration(milliseconds: 150),
+        reverseDuration: const Duration(milliseconds: 150)
+    );
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut)
+    );
+  }
+
+  @override
+  void dispose() {
+    if (mounted) _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) => _controller.forward();
+  void _onTapUp(TapUpDetails details) => _controller.reverse();
+  void _onTapCancel() => _controller.reverse();
+
+  Color _getButtonColor() {
+    if (widget.isFocusing) {
+       return Colors.white.withOpacity(0.2);
+    }
+    
+    final isNight = widget.themeState.mode == AppThemeMode.night;
+    final season = widget.themeState.season;
+    final env = widget.themeState.environment;
+
+    // 1. Space Environment (Override everything)
+    if (env == AppEnvironment.space) {
+       // Dark charcoal green
+       return const Color(0xFF2F4F4F); 
+    }
+
+    // 2. Night Mode (General)
+    if (isNight) {
+       // Warm Olive Green
+       return const Color(0xFF556B2F); 
+    }
+
+    // 3. Day Mode (Seasonal)
+    switch (season) {
+      case AppSeason.sakura:
+        // Desaturated Sage w/ Blush
+        return const Color(0xFF8FA998); 
+      case AppSeason.autumn:
+        // Warm Moss
+        return const Color(0xFF708238); 
+      case AppSeason.winter:
+        // Cool Grey-Green
+        return const Color(0xFF78909C); 
+      case AppSeason.normal:
+      default:
+        // Standard Soft Sage
+        return AppColors.islandGrass;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+           return Transform.scale(
+             scale: _scaleAnim.value,
+             child: child,
+           );
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 500), // Slow color transition
+          width: widget.isFocusing ? 140 : 200,
+          height: 68,
+          decoration: BoxDecoration(
+            color: _getButtonColor(),
+            borderRadius: BorderRadius.circular(34),
+            boxShadow: widget.isFocusing ? [] : [
+               BoxShadow(
+                 color: Colors.black.withOpacity(0.2),
+                 blurRadius: 12,
+                 offset: const Offset(0, 4),
+               )
+            ],
+          ),
+          alignment: Alignment.center,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              widget.isFocusing ? "Stop" : "Begin Focus",
+              key: ValueKey(widget.isFocusing),
+              style: AppTextStyles.subHeading.copyWith(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
