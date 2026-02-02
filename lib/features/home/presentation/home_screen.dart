@@ -8,6 +8,7 @@ import '../../timer/domain/timer_logic.dart';
 import '../../focus_guide/data/quotes_repository.dart';
 
 import '../../../../core/theme/theme_provider.dart';
+import 'distant_scenery.dart';
 
 import 'dart:math' as math; // Add math import
 
@@ -93,6 +94,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )
                 )
              )
+          ),
+
+          // 1.5 DISTANT SCENERY (Environment Specific)
+          Positioned.fill(
+             child: DistantScenery(themeState: themeState),
           ),
 
           // 2. The Living Island (Midground)
@@ -336,37 +342,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Helper for background colors
   List<Color> _getBackgroundColors(ThemeState state) {
     final bool isNight = state.mode == AppThemeMode.night;
+    final environment = state.environment;
     final season = state.season;
 
-    // 1. NIGHT MODES (Unified Premium Night)
-    if (isNight) {
-       // All seasons share the premium deep winter night aesthetic
-       // This ensures consistency and quality.
-       return [CalmPalette.winterNightTop, CalmPalette.winterNightBot];
-    }
+    // 1. SPECIFIC ENVIRONMENTS
+    switch (environment) {
+      case AppEnvironment.mountain:
+        // Cold, majestic purple-grey
+        return isNight 
+          ? [const Color(0xFF232526), const Color(0xFF414345)] 
+          : [const Color(0xFFE6DADA), const Color(0xFF274046)]; 
+      
+      case AppEnvironment.beach:
+        // Warm cyan/teal
+        return isNight 
+          ? [const Color(0xFF0F2027), const Color(0xFF203A43)] 
+          : [const Color(0xFF89F7FE), const Color(0xFF66A6FF)]; 
 
-    // 2. WINTER DAY
-    if (season == AppSeason.winter) {
-      return [CalmPalette.winterSky, CalmPalette.winterDayMist];
-    }
-    
-    // 3. AUTUMN DAY
-    if (season == AppSeason.autumn) {
-       return const [
-         CalmPalette.autumnSky,
-         Color(0xFFE2DDD9), 
-         CalmPalette.autumnMist,
-         CalmPalette.autumnGround, 
-       ];
-    }
+      case AppEnvironment.forest:
+        // Deep greens and mists
+        return isNight 
+          ? [const Color(0xFF093028), const Color(0xFF237A57)] 
+          : [const Color(0xFFD3CCE3), const Color(0xFFE9E4F0)]; 
 
-    // 4. NORMAL / SAKURA DAY
-    return const [
-      CalmPalette.skyTop,
-      Color(0xFFE8EEF2),
-      CalmPalette.skyMist,
-      CalmPalette.deepWater,
-    ];
+      case AppEnvironment.space:
+        // Always deep dark
+        return [const Color(0xFF000000), const Color(0xFF434343)]; 
+
+      case AppEnvironment.defaultSky:
+      default:
+        // 2. DEFAULT (SEASONAL SKY)
+        
+        // Unified Night (Premium)
+        if (isNight) {
+           return [CalmPalette.winterNightTop, CalmPalette.winterNightBot];
+        }
+
+        // Winter Day
+        if (season == AppSeason.winter) {
+          return [CalmPalette.winterSky, CalmPalette.winterDayMist];
+        }
+        
+        // Autumn Day
+        if (season == AppSeason.autumn) {
+           return const [
+             CalmPalette.autumnSky,
+             Color(0xFFE2DDD9), 
+             CalmPalette.autumnMist,
+             CalmPalette.autumnGround, 
+           ];
+        }
+
+        // Normal / Sakura Day
+        return const [
+          CalmPalette.skyTop,
+          Color(0xFFE8EEF2),
+          CalmPalette.skyMist,
+          CalmPalette.deepWater,
+        ];
+    }
   }
 }
 

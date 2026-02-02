@@ -81,34 +81,14 @@ class ThemeSelectorDialog extends ConsumerWidget {
     
     return AlertDialog(
       backgroundColor: AppColors.skyBottom,
-      title: Text("Select Environment", style: AppTextStyles.heading.copyWith(fontSize: 20)),
+      title: Text("Select Theme", style: AppTextStyles.heading.copyWith(fontSize: 20)),
       content: SingleChildScrollView( // Safety
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // TIME OF DAY
-            Text("Time", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Day",
-              isSelected: state.mode == AppThemeMode.day,
-              onTap: () => ref.read(themeProvider.notifier).setMode(AppThemeMode.day),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Night",
-              isSelected: state.mode == AppThemeMode.night,
-              onTap: () => ref.read(themeProvider.notifier).setMode(AppThemeMode.night),
-            ),
-            
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: Divider(color: AppColors.textSub, height: 1),
-            ),
-            
-            // SEASON
-            Text("Season", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
+            // SEASONAL (Island)
+            Text("Seasonal", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
             const SizedBox(height: 8),
             _ThemeOption(
               label: "Original",
@@ -132,6 +112,44 @@ class ThemeSelectorDialog extends ConsumerWidget {
               label: "Winter",
               isSelected: state.season == AppSeason.winter,
               onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.winter),
+            ),
+            
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Divider(color: AppColors.textSub, height: 1),
+            ),
+            
+            // ENVIRONMENT (World)
+            Text("Environment", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Default Sky",
+              isSelected: state.environment == AppEnvironment.defaultSky,
+              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.defaultSky),
+            ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Mountain Horizon",
+              isSelected: state.environment == AppEnvironment.mountain,
+              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.mountain),
+            ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Beach Breeze",
+              isSelected: state.environment == AppEnvironment.beach,
+              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.beach),
+            ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Forest Fog",
+              isSelected: state.environment == AppEnvironment.forest,
+              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.forest),
+            ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Space Night",
+              isSelected: state.environment == AppEnvironment.space,
+              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.space),
             ),
           ],
         ),
