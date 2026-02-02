@@ -224,20 +224,22 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          // 0. SOFT FLOATING SHADOW (Atmospheric Grounding)
+              // 0. SOFT FLOATING SHADOW (Atmospheric Grounding)
           Positioned(
-             bottom: w * 0.05, 
+             bottom: w * 0.08, // Slightly higher to 'float'
              child: Container(
-               width: w * 0.9,
-               height: w * 0.3,
+               width: w * 0.85,
+               height: w * 0.25,
                decoration: BoxDecoration(
-                 gradient: RadialGradient(
-                   colors: [
-                     CalmPalette.deepWater.withOpacity(0.12), // Subtle Blue-Grey tint
-                     Colors.transparent,
-                   ],
-                   radius: 1.0, 
-                 ),
+                 borderRadius: BorderRadius.circular(w), // Oval shape
+                 boxShadow: [
+                   BoxShadow(
+                     color: CalmPalette.deepWater.withOpacity(0.15), // Very subtle ambient dark
+                     blurRadius: 40, // Large blur for "air" feel
+                     spreadRadius: -10, // Feathered edges
+                     offset: const Offset(0, 10),
+                   ),
+                 ],
                ),
              ),
           ),
