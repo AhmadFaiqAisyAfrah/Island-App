@@ -146,21 +146,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   color: Colors.white.withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(30),
                                 ),
+                              /* 
+                               * QUOTE / TAGLINE 
+                               * Rules: White text, specific opacity, calm typography
+                               */
                                 child: Text(
                                   _currentQuote,
                                   textAlign: TextAlign.center,
                                   style: AppTextStyles.subHeading.copyWith(
-                                    color: AppColors.textMain, 
+                                    color: Colors.white.withOpacity(0.95), // Heading: High Opacity
                                     fontSize: 18,
-                                    fontStyle: FontStyle.italic
+                                    fontStyle: FontStyle.italic,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               )
-                            : Padding( // Extra padding to clear the menu
+                            : Padding(
                                 padding: const EdgeInsets.only(top: 16.0),
                                 child: Text( 
                                   "Your quiet place.",
-                                  style: AppTextStyles.subHeading.copyWith(color: Colors.white.withOpacity(0.8)),
+                                  style: AppTextStyles.subHeading.copyWith(
+                                    color: Colors.white.withOpacity(0.8), // Tagline: Lower Opacity
+                                    letterSpacing: 1.2, // Increased spacing
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ),
                         ),
@@ -179,16 +188,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: [
                             // Timer Text
                             // Ensure center alignment for font quirks
+                            // Timer Text
+                            // VISUAL RULE: White, 90% Opacity, No Shadows
                             Text(
                               _formatTime(timerState.remainingSeconds),
                               textAlign: TextAlign.center, 
                               style: AppTextStyles.timer.copyWith(
-                                shadows: [
-                                  BoxShadow(
-                                    color: Colors.white.withOpacity(0.5),
-                                    blurRadius: 10,
-                                  ),
-                                ],
+                                color: Colors.white.withOpacity(0.9), // 90% Opacity
+                                letterSpacing: 4.0, // Slightly wider for elegance
+                                height: 1.0, // Tighten line height for optical centering
+                                shadows: [], // Remove shadows
                               ),
                             ),
                             
@@ -201,10 +210,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   child: SliderTheme(
                                     data: SliderTheme.of(context).copyWith(
                                       trackHeight: 2, 
-                                      activeTrackColor: AppColors.islandCliff, 
-                                      inactiveTrackColor: Colors.white.withOpacity(0.3),
-                                      thumbColor: AppColors.islandCliff,
-                                      overlayColor: AppColors.islandCliff.withOpacity(0.1),
+                                      activeTrackColor: Colors.white.withOpacity(0.5), // Increased visibility
+                                      inactiveTrackColor: Colors.white.withOpacity(0.2), // Subtle track
+                                      thumbColor: Colors.white,
+                                      overlayColor: Colors.white.withOpacity(0.1),
                                       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                                       overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
                                     ),
@@ -222,7 +231,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             
                             // Spacing if Slider is hidden
-                            if (isFocusing) const SizedBox(height: 48),
+                            // Spacing if Slider is hidden
+                            if (isFocusing) const SizedBox(height: 64), // Increased spacing
 
                             // Primary Action Button
                             LayoutBuilder(
@@ -230,15 +240,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 300),
                                   width: isFocusing ? 140 : 200, 
-                                  height: 64,
+                                  height: 68, // Increased height (+4px)
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: isFocusing ? Colors.white.withOpacity(0.9) : AppColors.islandGrass,
-                                      foregroundColor: isFocusing ? AppColors.textMain : Colors.white,
+                                      backgroundColor: isFocusing ? Colors.white.withOpacity(0.2) : AppColors.islandGrass,
+                                      foregroundColor: Colors.white, // Always White Text
                                       elevation: isFocusing ? 0 : 4,
                                       shadowColor: AppColors.islandCliff.withOpacity(0.4),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(32),
+                                        borderRadius: BorderRadius.circular(34), // Adjusted for height
                                       ),
                                     ),
                                     onPressed: () {
@@ -252,8 +262,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     child: Text(
                                       isFocusing ? "Stop" : "Begin Focus",
                                       style: AppTextStyles.subHeading.copyWith(
-                                        color: isFocusing ? AppColors.textMain : Colors.white,
-                                        fontWeight: FontWeight.w600
+                                        color: Colors.white, // Explicitly White
+                                        fontSize: 18, // Increased Size (+1 step)
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
                                   ),
