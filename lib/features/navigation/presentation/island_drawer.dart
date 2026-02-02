@@ -3,6 +3,7 @@ import '../../../../core/theme/app_theme.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../shop/presentation/shop_screen.dart';
 
 class IslandDrawer extends ConsumerWidget {
   const IslandDrawer({super.key});
@@ -53,7 +54,7 @@ class IslandDrawer extends ConsumerWidget {
                   Navigator.pop(context);
                   Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (_) => const PlaceholderScreen(title: "Shop"))
+                    MaterialPageRoute(builder: (_) => const ShopScreen())
                   );
                 },
               ),

@@ -18,8 +18,17 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/island_logo.png"
+  adaptive_icon_background: "#DCE6EA"
+  adaptive_icon_foreground: "assets/icon/island_logo.png"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/icon/island_logo.png

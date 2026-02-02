@@ -10,7 +10,9 @@ import '../../focus_guide/data/quotes_repository.dart';
 import '../../../../core/theme/theme_provider.dart';
 import 'distant_scenery.dart';
 
-import 'dart:math' as math; // Add math import
+import 'dart:math' as math;
+import '../../shop/data/currency_provider.dart';
+import '../../shop/presentation/shop_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -44,7 +46,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
-    final themeState = ref.watch(themeProvider); // Returns ThemeState object now
+    final themeState = ref.watch(themeProvider);
+    final coinBalance = ref.watch(currencyProvider); // Watch coins
     final isFocusing = timerState.status == TimerStatus.running;
     final isNight = themeState.mode == AppThemeMode.night;
     final bgColors = _getBackgroundColors(themeState);
@@ -52,21 +55,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Listen for completion
     ref.listen(timerProvider, (previous, next) {
       if (next.status == TimerStatus.completed) {
+        // Calculate Reward (1 Coin per minute)
+        final int minutesFocused = next.initialDuration ~/ 60;
+        final int reward = minutesFocused > 0 ? minutesFocused : 1;
+        
+        // Award Coins
+        ref.read(currencyProvider.notifier).addCoins(reward);
+
         showDialog(
           context: context, 
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppColors.skyBottom,
-            title: Text('Well done.', style: AppTextStyles.heading),
-            content: Text('Take a gently breath.', style: AppTextStyles.body),
+            title: Column(
+              children: [
+                const Text("🧘", style: TextStyle(fontSize: 40)),
+                const SizedBox(height: 8),
+                Text('Well done.', style: AppTextStyles.heading),
+              ],
+            ),
+            content: Text(
+              'You focused for $minutesFocused minutes\nand earned $reward coins!',
+              style: AppTextStyles.body,
+              textAlign: TextAlign.center,
+            ),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             actions: [
-              TextButton(
-                onPressed: () {
-                  ref.read(timerProvider.notifier).reset();
-                  Navigator.pop(ctx);
-                },
-                child: Text('Continue', style: TextStyle(color: AppColors.textMain)),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    ref.read(timerProvider.notifier).reset();
+                    Navigator.pop(ctx);
+                  },
+                  child: Text('Collect', style: TextStyle(color: AppColors.islandCliff, fontWeight: FontWeight.bold)),
+                ),
               )
             ],
           )
@@ -159,6 +181,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
 
+
+
                 // DAY/NIGHT TOGGLE (Top-Right) - Only when idle
                 if (!isFocusing)
                   Positioned(
@@ -214,17 +238,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   ),
                                 ),
                               )
-                            : Padding(
-                                padding: const EdgeInsets.only(top: 16.0),
-                                child: Text( 
-                                  "Your quiet place.",
-                                  style: AppTextStyles.subHeading.copyWith(
-                                    color: Colors.white.withOpacity(0.85), // Slightly boosted
-                                    letterSpacing: 1.2, 
-                                    fontWeight: FontWeight.w400,
-                                    shadows: AppTextStyles.softShadow,
+                            : Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16.0),
+                                    child: Text( 
+                                      "Your quiet place.",
+                                      style: AppTextStyles.subHeading.copyWith(
+                                        color: Colors.white.withOpacity(0.85), // Slightly boosted
+                                        letterSpacing: 1.2, 
+                                        fontWeight: FontWeight.w400,
+                                        shadows: AppTextStyles.softShadow,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(height: 12),
+                                  // CENTERED COIN BALANCE (Secondary)
+                                  if (!isFocusing)
+                                    GestureDetector(
+                                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen())),
+                                      child: Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                                         decoration: BoxDecoration(
+                                           color: const Color(0xFFF2F2F2).withOpacity(0.9), // Soft Off-White, High Opacity
+                                           borderRadius: BorderRadius.circular(30),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.08),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              )
+                                            ],
+                                         ),
+                                         child: Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             const Text("🪙", style: TextStyle(
+                                               fontSize: 16, 
+                                             )),
+                                             const SizedBox(width: 8),
+                                             Text(
+                                               "$coinBalance",
+                                               style: AppTextStyles.body.copyWith(
+                                                 color: AppColors.textMain, // Dark Slate for readability
+                                                 fontSize: 15,
+                                                 fontWeight: FontWeight.w600,
+                                                 height: 1.0,
+                                               ),
+                                             ),
+                                           ],
+                                         ),
+                                      ),
+                                    ),
+                                ],
                               ),
                         ),
                       ),
@@ -248,10 +314,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _formatTime(timerState.remainingSeconds),
                               textAlign: TextAlign.center, 
                               style: AppTextStyles.timer.copyWith(
-                                color: Colors.white.withOpacity(0.9), // 90% Opacity
-                                letterSpacing: 4.0, // Slightly wider for elegance
-                                height: 1.0, // Tighten line height for optical centering
-                                shadows: AppTextStyles.softShadow, // Re-added soft shadow for readability
+                                color: Colors.white, // Pure white for primary focus
+                                fontWeight: FontWeight.w300, // Slightly bolder than w200
+                                letterSpacing: 4.0, 
+                                height: 1.0, 
+                                shadows: AppTextStyles.softShadow,
                               ),
                              ),
                             
@@ -263,9 +330,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   width: 280,
                                   child: SliderTheme(
                                     data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 2, 
-                                      activeTrackColor: Colors.white.withOpacity(0.5), // Increased visibility
-                                      inactiveTrackColor: Colors.white.withOpacity(0.2), // Subtle track
+                                      trackHeight: 4, // Slightly thicker for visibility
+                                      activeTrackColor: Colors.white.withOpacity(0.8), // Higher contrast
+                                      inactiveTrackColor: Colors.white.withOpacity(0.3), // More visible track
                                       thumbColor: Colors.white,
                                       overlayColor: Colors.white.withOpacity(0.1),
                                       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
@@ -506,17 +573,18 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
           duration: const Duration(milliseconds: 500), // Slow color transition
           width: widget.isFocusing ? 140 : 200,
           height: 68,
-          decoration: BoxDecoration(
-            color: _getButtonColor(),
-            borderRadius: BorderRadius.circular(34),
-            boxShadow: widget.isFocusing ? [] : [
-               BoxShadow(
-                 color: Colors.black.withOpacity(0.2),
-                 blurRadius: 12,
-                 offset: const Offset(0, 4),
-               )
-            ],
-          ),
+            decoration: BoxDecoration(
+              color: _getButtonColor(),
+              borderRadius: BorderRadius.circular(34),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.0), // Added local border contrast
+              boxShadow: widget.isFocusing ? [] : [
+                 BoxShadow(
+                   color: Colors.black.withOpacity(0.25), // Slightly stronger shadow
+                   blurRadius: 16, // Softer blur
+                   offset: const Offset(0, 6), // Slightly lower
+                 )
+              ],
+            ),
           alignment: Alignment.center,
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
