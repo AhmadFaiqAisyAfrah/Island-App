@@ -87,21 +87,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    // DAY FIX: Unified Smooth Gradient to prevent banding
-                    // NIGHT: Deep gradient
-                    colors: isNight 
-                      ? const [ // NIGHT THEME
-                          CalmPalette.nightSkyTop,
-                          CalmPalette.nightSkyMist,
-                          CalmPalette.nightDeepWater,
-                        ]
-                      : const [ // DAY THEME (Refined for Smoothness)
-                          CalmPalette.skyTop,
-                          Color(0xFFE8EEF2), // New: Intermediate step
-                          CalmPalette.skyMist,
-                          CalmPalette.deepWater,
-                        ],
-                     // DAY FIX: More steps for smoother distribution
+                    colors: _getBackgroundColors(themeState),
+                     // DAY/AUTUMN: Smooth steps. NIGHT: Standard.
                      stops: isNight ? null : [0.0, 0.4, 0.7, 1.0], 
                   )
                 )
@@ -323,6 +310,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+  }
+
+  // Helper for background colors
+  List<Color> _getBackgroundColors(ThemeState state) {
+    if (state.mode == AppThemeMode.night) {
+      return const [
+        CalmPalette.nightSkyTop,
+        CalmPalette.nightSkyMist,
+        CalmPalette.nightDeepWater,
+      ];
+    }
+    
+    // Day Modes
+    if (state.season == AppSeason.autumn) {
+      return const [
+        CalmPalette.autumnSky,
+        Color(0xFFE2DDD9), // Warm mist intermediate (Beige-Grey)
+        CalmPalette.autumnMist,
+        CalmPalette.autumnGround, 
+      ];
+    }
+
+    // Default Day (Original)
+    return const [
+      CalmPalette.skyTop,
+      Color(0xFFE8EEF2),
+      CalmPalette.skyMist,
+      CalmPalette.deepWater,
+    ];
   }
 }
 

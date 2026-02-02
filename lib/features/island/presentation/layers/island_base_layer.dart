@@ -44,7 +44,14 @@ class CalmPalette {
   
   // Sakura Season
   static const Color sakuraLight = Color(0xFFE6C9C9); // Muted Dusty Pink
-  static const Color sakuraDark = Color(0xFFD7A7A7);  // Soft darker tone 
+  static const Color sakuraDark = Color(0xFFD7A7A7);  // Soft darker tone
+  
+  // Autumn Season
+  static const Color autumnSky = Color(0xFFE0E5E8); // Warmer Blue-Grey
+  static const Color autumnMist = Color(0xFFD7D3CE); // Soft Beige Mist
+  static const Color autumnGround = Color(0xFF9E9D89); // Olive/Warm Brown-Green
+  static const Color autumnLeafLight = Color(0xFFD4A373); // Muted Orange/Amber
+  static const Color autumnLeafDark = Color(0xFFA67C52); // Warm Brown
 }
 
 class IslandBaseLayer extends StatefulWidget {
@@ -133,10 +140,10 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   // --- PETAL LOGIC ---
   
   void _checkPetalStart() {
-    // Only run if Focusing AND Sakura
-    if (widget.isFocusing && widget.themeState.season == AppSeason.sakura) {
-      // If already running (e.g. season change), reset? No, just ensure loop is active.
-      // Actually, simple way: Stop current, Start new loop (Initial Burst)
+    // Only run if Focusing AND (Sakura OR Autumn)
+    final season = widget.themeState.season;
+    if (widget.isFocusing && (season == AppSeason.sakura || season == AppSeason.autumn)) {
+      // Restart loop
       _stopPetalLoop();
       _schedulePetalWave(initialDelay: Duration.zero);
     } else {
@@ -151,10 +158,16 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   }
 
   void _schedulePetalWave({Duration? initialDelay}) {
-    if (!mounted || !widget.isFocusing || widget.themeState.season != AppSeason.sakura) return;
+    if (!mounted || !widget.isFocusing) return;
     
-    // Delay before this wave (0 for initial)
-    final delay = initialDelay ?? Duration(seconds: 15 + math.Random().nextInt(10)); // 15-25s
+    final season = widget.themeState.season;
+    if (season != AppSeason.sakura && season != AppSeason.autumn) return;
+    
+    // Delay: Faster for both
+    // Sakura: 3-5s (was 15-25)
+    // Autumn: 4-6s (was 20-30)
+    final baseDelay = season == AppSeason.autumn ? 4 : 3;
+    final delay = initialDelay ?? Duration(seconds: baseDelay + math.Random().nextInt(3));
     
     _petalTimer = Timer(delay, () {
       if (!mounted) return;
@@ -212,6 +225,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     }
 
     final bool isSakura = widget.themeState.season == AppSeason.sakura;
+    final bool isAutumn = widget.themeState.season == AppSeason.autumn;
 
     return Container(
       width: w,
@@ -251,7 +265,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                width: w * 0.95, 
                height: w * 0.55, 
                child: CustomPaint(
-                 painter: CalmIslandPainter(isSakura: isSakura)
+                 painter: CalmIslandPainter(isSakura: isSakura, isAutumn: isAutumn)
                ),
              ),
           ),
@@ -264,6 +278,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
               size: w * 0.50, 
               lightIntensity: lightIntensity,
               isSakura: isSakura,
+              isAutumn: isAutumn,
             ), 
           ),
 
@@ -283,6 +298,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                isFocusing: widget.isFocusing, 
                delay: 0,
                isSakura: isSakura,
+               isAutumn: isAutumn,
              ),
           ),
           Positioned(
@@ -293,6 +309,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                isFocusing: widget.isFocusing, 
                delay: 1,
                isSakura: isSakura,
+               isAutumn: isAutumn,
              ),
           ),
 
@@ -332,10 +349,12 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
           AnimatedBuilder(
             animation: _petalController,
             builder: (context, child) {
-              if (isSakura && _petalController.isAnimating) {
+              if ((isSakura || isAutumn) && _petalController.isAnimating) {
                 return Positioned.fill(
                   child: CustomPaint(
-                    painter: _SakuraPetalPainter(progress: _petalController.value),
+                    painter: isSakura 
+                      ? _SakuraPetalPainter(progress: _petalController.value)
+                      : _AutumnLeafPainter(progress: _petalController.value),
                   ),
                 );
               }
@@ -352,7 +371,8 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
 
 class CalmIslandPainter extends CustomPainter {
   final bool isSakura;
-  CalmIslandPainter({this.isSakura = false});
+  final bool isAutumn;
+  CalmIslandPainter({this.isSakura = false, this.isAutumn = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -386,36 +406,62 @@ class CalmIslandPainter extends CustomPainter {
     grassPath.moveTo(-w * 0.05, h * 0.35);
     grassPath.cubicTo(w*0.3, h*0.1, w*0.7, h*0.1, w*1.05, h*0.35);
     grassPath.quadraticBezierTo(w*0.5, h*0.55, -w*0.05, h*0.35);
-    canvas.drawPath(grassPath, Paint()..color = CalmPalette.grassBase);
+    grassPath.quadraticBezierTo(w*0.5, h*0.55, -w*0.05, h*0.35);
+    canvas.drawPath(grassPath, Paint()..color = isAutumn ? CalmPalette.autumnGround : CalmPalette.grassBase);
 
     // 3. SAKURA GROUND PETALS (Static)
+    // Increased density and natural range
     if (isSakura) {
-      final petalPaint = Paint()..color = CalmPalette.sakuraDark.withOpacity(0.6); // Subtle ground petals
+      final petalPaint = Paint()..color = CalmPalette.sakuraLight.withOpacity(0.9);
       
-      // Near Tree Base (Right side)
-      canvas.drawOval(Rect.fromLTWH(w * 0.75, h * 0.35, w * 0.02, w * 0.015), petalPaint);
-      canvas.drawOval(Rect.fromLTWH(w * 0.82, h * 0.38, w * 0.02, w * 0.015), petalPaint);
+      // Far Left
+      canvas.drawOval(Rect.fromLTWH(w * 0.1, h * 0.36, w * 0.02, w * 0.015), petalPaint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.15, h * 0.39, w * 0.015, w * 0.01), petalPaint);
       
-      // Scattered (Left center)
-      canvas.drawOval(Rect.fromLTWH(w * 0.4, h * 0.42, w * 0.02, w * 0.015), petalPaint);
-      // Near Edge
-      canvas.drawOval(Rect.fromLTWH(w * 0.2, h * 0.38, w * 0.02, w * 0.015), petalPaint);
+      // Near House
+      canvas.drawOval(Rect.fromLTWH(w * 0.45, h * 0.40, w * 0.025, w * 0.018), petalPaint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.52, h * 0.42, w * 0.02, w * 0.015), petalPaint);
+      
+      // Right Side (under tree)
+      canvas.drawOval(Rect.fromLTWH(w * 0.8, h * 0.37, w * 0.022, w * 0.016), petalPaint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.85, h * 0.35, w * 0.018, w * 0.012), petalPaint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.75, h * 0.41, w * 0.02, w * 0.015), petalPaint);
+    }
+    
+    // 4. AUTUMN GROUND LEAVES (Static)
+    // Increased density and varied colors
+    if (isAutumn) {
+       final leafPaint = Paint();
+       
+       // Saturated Amber
+       leafPaint.color = CalmPalette.autumnLeafLight.withOpacity(0.85);
+       canvas.drawOval(Rect.fromLTWH(w * 0.6, h * 0.42, w * 0.025, w * 0.015), leafPaint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.3, h * 0.38, w * 0.02, w * 0.012), leafPaint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.15, h * 0.35, w * 0.022, w * 0.014), leafPaint);
+
+       // Darker Brown
+       leafPaint.color = CalmPalette.autumnLeafDark.withOpacity(0.8);
+       canvas.drawOval(Rect.fromLTWH(w * 0.8, h * 0.36, w * 0.02, w * 0.012), leafPaint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.45, h * 0.41, w * 0.025, w * 0.015), leafPaint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.9, h * 0.39, w * 0.018, w * 0.010), leafPaint);
     }
   }
   @override
-  bool shouldRepaint(covariant CalmIslandPainter oldDelegate) => isSakura != oldDelegate.isSakura;
+  bool shouldRepaint(covariant CalmIslandPainter oldDelegate) => isSakura != oldDelegate.isSakura || isAutumn != oldDelegate.isAutumn;
 }
 
 class CalmHouseWidget extends StatelessWidget {
   final double size;
   final double lightIntensity; 
   final bool isSakura;
+  final bool isAutumn;
   
   const CalmHouseWidget({
     super.key, 
     required this.size,
     required this.lightIntensity,
     this.isSakura = false,
+    this.isAutumn = false,
   });
   
   @override
@@ -434,6 +480,7 @@ class CalmHouseWidget extends StatelessWidget {
             painter: _CalmHousePainter(
               lightOpacity: lightOpacity,
               isSakura: isSakura,
+              isAutumn: isAutumn,
             )
           );
         }
@@ -445,8 +492,9 @@ class CalmHouseWidget extends StatelessWidget {
 class _CalmHousePainter extends CustomPainter {
   final double lightOpacity;
   final bool isSakura;
+  final bool isAutumn;
   
-  _CalmHousePainter({required this.lightOpacity, required this.isSakura});
+  _CalmHousePainter({required this.lightOpacity, required this.isSakura, required this.isAutumn});
   
   @override
   void paint(Canvas canvas, Size size) {
@@ -509,10 +557,28 @@ class _CalmHousePainter extends CustomPainter {
        // 2. Near Peak
        canvas.drawOval(Rect.fromLTWH(w * 0.55, h * 0.28, w * 0.03, w * 0.02), paint);
     }
+    
+    // ROOF PETALS (Static Sakura)
+    if (isSakura) {
+       paint.color = CalmPalette.sakuraLight.withOpacity(0.8);
+       canvas.drawOval(Rect.fromLTWH(w * 0.25, h * 0.35, w * 0.025, w * 0.015), paint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.6, h * 0.32, w * 0.02, w * 0.012), paint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.4, h * 0.30, w * 0.022, w * 0.014), paint);
+    }
+    
+    // ROOF LEAVES (Static Autumn)
+    if (isAutumn) {
+       paint.color = CalmPalette.autumnLeafLight.withOpacity(0.85);
+       canvas.drawOval(Rect.fromLTWH(w * 0.2, h * 0.35, w * 0.03, w * 0.015), paint);
+       canvas.drawOval(Rect.fromLTWH(w * 0.55, h * 0.32, w * 0.025, w * 0.012), paint);
+       
+       paint.color = CalmPalette.autumnLeafDark.withOpacity(0.8);
+       canvas.drawOval(Rect.fromLTWH(w * 0.35, h * 0.29, w * 0.022, w * 0.014), paint);
+    }
   }
   @override
   bool shouldRepaint(covariant _CalmHousePainter oldDelegate) => 
-    lightOpacity != oldDelegate.lightOpacity || isSakura != oldDelegate.isSakura;
+    lightOpacity != oldDelegate.lightOpacity || isSakura != oldDelegate.isSakura || isAutumn != oldDelegate.isAutumn;
 }
 
 // 2.5 GARDEN LAMP
@@ -581,12 +647,14 @@ class CalmTreeWidget extends StatefulWidget {
   final double size;
   final bool isFocusing;
   final bool isSakura;
+  final bool isAutumn;
   final int delay;
   const CalmTreeWidget({
     super.key, 
     required this.size, 
     required this.isFocusing, 
     this.isSakura = false,
+    this.isAutumn = false,
     this.delay = 0
   });
   @override
@@ -629,7 +697,8 @@ class _CalmTreeWidgetState extends State<CalmTreeWidget> with SingleTickerProvid
           size: Size(widget.size, widget.size), 
           painter: _CalmTreePainter(
             swayValue: sway,
-            isSakura: widget.isSakura
+            isSakura: widget.isSakura,
+            isAutumn: widget.isAutumn,
           )
         );
       }
@@ -640,14 +709,19 @@ class _CalmTreeWidgetState extends State<CalmTreeWidget> with SingleTickerProvid
 class _CalmTreePainter extends CustomPainter {
   final double swayValue;
   final bool isSakura;
+  final bool isAutumn;
   
-  _CalmTreePainter({required this.swayValue, required this.isSakura});
+  _CalmTreePainter({required this.swayValue, required this.isSakura, required this.isAutumn});
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
     final trunkPaint = Paint()..color = CalmPalette.cliffShadow;
-    final foliagePaint = Paint()..color = isSakura ? CalmPalette.sakuraLight : CalmPalette.grassHighlight;
+    Color foliageColor = CalmPalette.grassHighlight;
+    if (isSakura) foliageColor = CalmPalette.sakuraLight;
+    if (isAutumn) foliageColor = CalmPalette.autumnLeafLight;
+    
+    final foliagePaint = Paint()..color = foliageColor;
 
     // 1. TRUNK
     final trunkRect = Rect.fromLTWH(w * 0.48, h * 0.6, w * 0.04, h * 0.4);
@@ -670,6 +744,17 @@ class _CalmTreePainter extends CustomPainter {
       foliagePaint.color = CalmPalette.sakuraDark.withOpacity(0.3);
       canvas.drawCircle(Offset(0, -h * 0.15), w * 0.15, foliagePaint);
       
+    } else if (isAutumn) {
+      // AUTUMN SHAPE: Maple (Wider, Flatter)
+      
+      // Main Crown (Wide)
+      foliagePaint.color = CalmPalette.autumnLeafLight;
+      canvas.drawOval(Rect.fromCenter(center: Offset(0, -h * 0.18), width: w * 0.55, height: w * 0.35), foliagePaint);
+      
+      // Top Bit
+      foliagePaint.color = CalmPalette.autumnLeafDark.withOpacity(0.8);
+      canvas.drawOval(Rect.fromCenter(center: Offset(0, -h * 0.28), width: w * 0.3, height: w * 0.25), foliagePaint);
+      
     } else {
       // NORMAL SHAPE: Simple Sphere
       canvas.drawCircle(Offset(0, -h * 0.15), w * 0.25, foliagePaint);
@@ -679,7 +764,7 @@ class _CalmTreePainter extends CustomPainter {
   }
   @override
   bool shouldRepaint(covariant _CalmTreePainter oldDelegate) => 
-    swayValue != oldDelegate.swayValue || isSakura != oldDelegate.isSakura;
+    swayValue != oldDelegate.swayValue || isSakura != oldDelegate.isSakura || isAutumn != oldDelegate.isAutumn;
 }
 
 class CalmCharacterWidget extends StatelessWidget {
@@ -743,19 +828,12 @@ class _SakuraPetalPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final paint = Paint()..color = CalmPalette.sakuraLight;
-
-    // Draw 3 discrete petals with hardcoded paths for predictability
-    // They fall from top-ish to bottom-ish
     
-    // Petal 1 (Left)
-    _drawPetal(canvas, w * 0.3, h * 0.4, w, h, -1.0, 0.0);
-    
-    // Petal 2 (Right)
-    _drawPetal(canvas, w * 0.7, h * 0.35, w, h, 1.0, 0.2);
-    
-    // Petal 3 (Center)
-    _drawPetal(canvas, w * 0.5, h * 0.3, w, h, 0.5, 0.4);
+    // Draw 4 Petals
+    _drawPetal(canvas, w * 0.2, h * 0.2, w, h, 1.0, 0.0);
+    _drawPetal(canvas, w * 0.5, h * 0.1, w, h, -1.0, 0.15);
+    _drawPetal(canvas, w * 0.8, h * 0.3, w, h, 1.0, 0.3);
+    _drawPetal(canvas, w * 0.4, h * 0.05, w, h, 0.5, 0.4);
   }
 
   void _drawPetal(Canvas canvas, double startX, double startY, double w, double h, double driftDir, double timeOffset) {
@@ -791,6 +869,60 @@ class _SakuraPetalPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SakuraPetalPainter oldDelegate) => progress != oldDelegate.progress;
+}
+
+class _AutumnLeafPainter extends CustomPainter {
+  final double progress; 
+  _AutumnLeafPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    
+    // Draw 4 Leaves (Varied colors)
+    _drawLeaf(canvas, w * 0.4, h * 0.2, w, h, -1.0, 0.0, CalmPalette.autumnLeafLight);
+    _drawLeaf(canvas, w * 0.7, h * 0.1, w, h, 1.0, 0.2, CalmPalette.autumnLeafDark);
+    _drawLeaf(canvas, w * 0.2, h * 0.3, w, h, 0.8, 0.4, CalmPalette.autumnLeafLight);
+    _drawLeaf(canvas, w * 0.55, h * 0.05, w, h, -0.5, 0.5, CalmPalette.autumnLeafDark);
+  }
+  
+  void _drawLeaf(Canvas canvas, double startX, double startY, double w, double h, double driftDir, double timeOffset, Color color) {
+    double t = (progress + timeOffset).clamp(0.0, 1.0);
+    if (t <= 0 || t >= 1) return;
+    
+    // Falls further/slower feeling
+    double y = startY + (h * 0.4 * t);
+    double x = startX + (math.sin(t * math.pi * 2) * (w * 0.1) * driftDir);
+    
+    // Slow rotation
+    double rotation = t * math.pi * driftDir;
+    
+    // Fade
+    double opacity = 1.0;
+    if (t < 0.1) opacity = t / 0.1;
+    else if (t > 0.9) opacity = (1.0 - t) / 0.1;
+    
+    final paint = Paint()..color = color.withOpacity(opacity);
+    
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.rotate(rotation);
+    
+    // Leaf Shape (Diamond-ish)
+    final path = Path();
+    path.moveTo(0, -w * 0.015);
+    path.lineTo(w * 0.01, 0);
+    path.lineTo(0, w * 0.015);
+    path.lineTo(-w * 0.01, 0);
+    path.close();
+    
+    canvas.drawPath(path, paint);
+    canvas.restore();
+  }
+  
+  @override
+  bool shouldRepaint(covariant _AutumnLeafPainter oldDelegate) => progress != oldDelegate.progress;
 }
 
 enum CharacterViewMode { front, side }

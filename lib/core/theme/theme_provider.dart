@@ -10,6 +10,7 @@ enum AppThemeMode {
 enum AppSeason {
   normal,
   sakura,
+  autumn,
 }
 
 @immutable
