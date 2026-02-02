@@ -8,12 +8,12 @@ import '../../../../core/theme/theme_provider.dart';
 
 class IslandVisualStack extends StatelessWidget {
   final bool isFocusing;
-  final AppThemeMode currentTheme;
+  final ThemeState themeState; // Changed from AppThemeMode
 
   const IslandVisualStack({
     super.key,
     required this.isFocusing,
-    required this.currentTheme,
+    required this.themeState,
   });
 
   @override
@@ -48,7 +48,7 @@ class IslandVisualStack extends StatelessWidget {
                     scale: scale,
                     child: IslandBaseLayer(
                       isFocusing: isFocusing, 
-                      currentTheme: currentTheme,
+                      themeState: themeState,
                       width: w * 0.75
                     ), 
                   );

@@ -77,33 +77,59 @@ class ThemeSelectorDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(themeProvider);
+    final state = ref.watch(themeProvider);
     
     return AlertDialog(
       backgroundColor: AppColors.skyBottom,
-      title: Text("Select Atmosphere", style: AppTextStyles.heading.copyWith(fontSize: 20)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ThemeOption(
-            label: "Day (Default)",
-            isSelected: current == AppThemeMode.day,
-            onTap: () {
-              ref.read(themeProvider.notifier).setMode(AppThemeMode.day);
-              Navigator.pop(context);
-            },
-          ),
-          const SizedBox(height: 16),
-          _ThemeOption(
-            label: "Night",
-            isSelected: current == AppThemeMode.night,
-            onTap: () {
-              ref.read(themeProvider.notifier).setMode(AppThemeMode.night);
-              Navigator.pop(context);
-            },
-          ),
-        ],
+      title: Text("Select Environment", style: AppTextStyles.heading.copyWith(fontSize: 20)),
+      content: SingleChildScrollView( // Safety
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // TIME OF DAY
+            Text("Time", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Day",
+              isSelected: state.mode == AppThemeMode.day,
+              onTap: () => ref.read(themeProvider.notifier).setMode(AppThemeMode.day),
+            ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Night",
+              isSelected: state.mode == AppThemeMode.night,
+              onTap: () => ref.read(themeProvider.notifier).setMode(AppThemeMode.night),
+            ),
+            
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Divider(color: AppColors.textSub, height: 1),
+            ),
+            
+            // SEASON
+            Text("Season", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Original",
+              isSelected: state.season == AppSeason.normal,
+              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.normal),
+            ),
+            const SizedBox(height: 8),
+            _ThemeOption(
+              label: "Sakura",
+              isSelected: state.season == AppSeason.sakura,
+              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.sakura),
+            ),
+          ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text("Done", style: AppTextStyles.subHeading.copyWith(fontSize: 16)),
+        )
+      ],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }

@@ -40,17 +40,21 @@ class CalmPalette {
   // Character
   static const Color charSkin = Color(0xFFFFCCBC); 
   static const Color charCloth = Color(0xFF5D4037); 
+  
+  // Sakura Season
+  static const Color sakuraLight = Color(0xFFE6C9C9); // Muted Dusty Pink
+  static const Color sakuraDark = Color(0xFFD7A7A7);  // Soft darker tone 
 }
 
 class IslandBaseLayer extends StatefulWidget {
   final bool isFocusing; // ACTION
-  final AppThemeMode currentTheme; // WORLD STATE
+  final ThemeState themeState; // WORLD STATE (Mode + Season)
   final double width;
 
   const IslandBaseLayer({
     super.key,
     required this.isFocusing,
-    required this.currentTheme,
+    required this.themeState,
     required this.width,
   });
 
@@ -62,8 +66,10 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   // ... (Keep existing animation controllers)
   late AnimationController _patrolController;
   late AnimationController _walkCycleController;
+  late AnimationController _petalController; // New: Petal Animation
   
   Timer? _behaviorTimer;
+  Timer? _petalTimer; // Periodic petal waves
   bool _isCharacterWalking = true;
 
   @override
@@ -79,18 +85,35 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
       duration: const Duration(milliseconds: 800),
     );
 
+    _petalController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4), // 4 seconds of gentle falling
+    );
+
     if (widget.isFocusing) {
       _startAnimations(); 
+      _checkPetalStart(); // Initial check
     }
   }
 
   @override
   void didUpdateWidget(IslandBaseLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isFocusing && !oldWidget.isFocusing) {
-      _startAnimations();
-    } else if (!widget.isFocusing && oldWidget.isFocusing) {
-      _stopAnimations();
+    
+    // 1. FOCUS CHANGE
+    if (widget.isFocusing != oldWidget.isFocusing) {
+      if (widget.isFocusing) {
+        _startAnimations();
+        _checkPetalStart();
+      } else {
+        _stopAnimations();
+        _stopPetalLoop();
+      }
+    }
+    
+    // 2. SEASON CHANGE (While Focusing)
+    if (widget.isFocusing && widget.themeState.season != oldWidget.themeState.season) {
+      _checkPetalStart(); // Will start or stop based on new season
     }
   }
   
@@ -104,6 +127,43 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     _patrolController.stop();
     _walkCycleController.stop();
     _walkCycleController.animateTo(0, duration: const Duration(milliseconds: 200));
+  }
+  
+  // --- PETAL LOGIC ---
+  
+  void _checkPetalStart() {
+    // Only run if Focusing AND Sakura
+    if (widget.isFocusing && widget.themeState.season == AppSeason.sakura) {
+      // If already running (e.g. season change), reset? No, just ensure loop is active.
+      // Actually, simple way: Stop current, Start new loop (Initial Burst)
+      _stopPetalLoop();
+      _schedulePetalWave(initialDelay: Duration.zero);
+    } else {
+      _stopPetalLoop();
+    }
+  }
+  
+  void _stopPetalLoop() {
+    _petalTimer?.cancel();
+    _petalController.stop();
+    _petalController.reset();
+  }
+
+  void _schedulePetalWave({Duration? initialDelay}) {
+    if (!mounted || !widget.isFocusing || widget.themeState.season != AppSeason.sakura) return;
+    
+    // Delay before this wave (0 for initial)
+    final delay = initialDelay ?? Duration(seconds: 15 + math.Random().nextInt(10)); // 15-25s
+    
+    _petalTimer = Timer(delay, () {
+      if (!mounted) return;
+      
+      // Trigger Animation
+      _petalController.forward(from: 0.0).then((_) {
+         // When done, schedule next
+         _schedulePetalWave();
+      });
+    });
   }
   
   void _scheduleBehavior() {
@@ -130,8 +190,10 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   @override
   void dispose() {
     _behaviorTimer?.cancel();
+    _petalTimer?.cancel();
     _patrolController.dispose();
     _walkCycleController.dispose();
+    _petalController.dispose();
     super.dispose();
   }
 
@@ -144,9 +206,11 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     // Night Idle: 0.3 (Soft glow)
     // Night Focus: 0.8 (Brighter, more welcoming)
     double lightIntensity = 0.0;
-    if (widget.currentTheme == AppThemeMode.night) {
+    if (widget.themeState.mode == AppThemeMode.night) {
        lightIntensity = widget.isFocusing ? 0.8 : 0.3;
     }
+
+    final bool isSakura = widget.themeState.season == AppSeason.sakura;
 
     return Container(
       width: w,
@@ -177,13 +241,15 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
              ),
           ),
           
-          // 1. ISLAND GEO (Gradient Blend)
+          // 1. ISLAND GEO (Gradient Blend + Sakura Accents)
           Positioned(
              bottom: w * 0.15,
              child: SizedBox(
                width: w * 0.95, 
                height: w * 0.55, 
-               child: CustomPaint(painter: CalmIslandPainter()),
+               child: CustomPaint(
+                 painter: CalmIslandPainter(isSakura: isSakura)
+               ),
              ),
           ),
           
@@ -191,7 +257,11 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
           Positioned(
             bottom: w * 0.48, 
             left: w * 0.05,  
-            child: CalmHouseWidget(size: w * 0.50, lightIntensity: lightIntensity), 
+            child: CalmHouseWidget(
+              size: w * 0.50, 
+              lightIntensity: lightIntensity,
+              isSakura: isSakura,
+            ), 
           ),
 
           // 2.5 GARDEN LAMP (New)
@@ -201,16 +271,26 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
              child: CalmGardenLamp(size: w * 0.08, lightIntensity: lightIntensity),
           ),
 
-          // 3. TREES
+          // 3. TREES (Sakura or Green)
           Positioned(
              bottom: w * 0.48,
              right: w * 0.15, 
-             child: CalmTreeWidget(size: w * 0.45, isFocusing: widget.isFocusing, delay: 0),
+             child: CalmTreeWidget(
+               size: w * 0.45, 
+               isFocusing: widget.isFocusing, 
+               delay: 0,
+               isSakura: isSakura,
+             ),
           ),
           Positioned(
              bottom: w * 0.50,
              right: w * 0.05, 
-             child: CalmTreeWidget(size: w * 0.35, isFocusing: widget.isFocusing, delay: 1),
+             child: CalmTreeWidget(
+               size: w * 0.35, 
+               isFocusing: widget.isFocusing, 
+               delay: 1,
+               isSakura: isSakura,
+             ),
           ),
 
           // 4. CHARACTER
@@ -243,6 +323,22 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
               );
             }
           ),
+
+          // 5. SAKURA PETALS (Overlay - Only triggered once)
+          // Drawn on top of everything
+          AnimatedBuilder(
+            animation: _petalController,
+            builder: (context, child) {
+              if (isSakura && _petalController.isAnimating) {
+                return Positioned.fill(
+                  child: CustomPaint(
+                    painter: _SakuraPetalPainter(progress: _petalController.value),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }
+          ),
         ],
       ),
     );
@@ -252,6 +348,9 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
 // --- PAINTERS ---
 
 class CalmIslandPainter extends CustomPainter {
+  final bool isSakura;
+  CalmIslandPainter({this.isSakura = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
@@ -285,19 +384,35 @@ class CalmIslandPainter extends CustomPainter {
     grassPath.cubicTo(w*0.3, h*0.1, w*0.7, h*0.1, w*1.05, h*0.35);
     grassPath.quadraticBezierTo(w*0.5, h*0.55, -w*0.05, h*0.35);
     canvas.drawPath(grassPath, Paint()..color = CalmPalette.grassBase);
+
+    // 3. SAKURA GROUND PETALS (Static)
+    if (isSakura) {
+      final petalPaint = Paint()..color = CalmPalette.sakuraDark.withOpacity(0.6); // Subtle ground petals
+      
+      // Near Tree Base (Right side)
+      canvas.drawOval(Rect.fromLTWH(w * 0.75, h * 0.35, w * 0.02, w * 0.015), petalPaint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.82, h * 0.38, w * 0.02, w * 0.015), petalPaint);
+      
+      // Scattered (Left center)
+      canvas.drawOval(Rect.fromLTWH(w * 0.4, h * 0.42, w * 0.02, w * 0.015), petalPaint);
+      // Near Edge
+      canvas.drawOval(Rect.fromLTWH(w * 0.2, h * 0.38, w * 0.02, w * 0.015), petalPaint);
+    }
   }
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CalmIslandPainter oldDelegate) => isSakura != oldDelegate.isSakura;
 }
 
 class CalmHouseWidget extends StatelessWidget {
   final double size;
   final double lightIntensity; 
+  final bool isSakura;
   
   const CalmHouseWidget({
     super.key, 
     required this.size,
     required this.lightIntensity,
+    this.isSakura = false,
   });
   
   @override
@@ -313,7 +428,10 @@ class CalmHouseWidget extends StatelessWidget {
         duration: const Duration(milliseconds: 1200),
         builder: (context, lightOpacity, child) {
           return CustomPaint(
-            painter: _CalmHousePainter(lightOpacity: lightOpacity)
+            painter: _CalmHousePainter(
+              lightOpacity: lightOpacity,
+              isSakura: isSakura,
+            )
           );
         }
       )
@@ -323,8 +441,9 @@ class CalmHouseWidget extends StatelessWidget {
 
 class _CalmHousePainter extends CustomPainter {
   final double lightOpacity;
+  final bool isSakura;
   
-  _CalmHousePainter({required this.lightOpacity});
+  _CalmHousePainter({required this.lightOpacity, required this.isSakura});
   
   @override
   void paint(Canvas canvas, Size size) {
@@ -378,9 +497,19 @@ class _CalmHousePainter extends CustomPainter {
        canvas.drawCircle(Offset(w * 0.75, h * 0.65), w * 0.08, paint);
        paint.maskFilter = null;
     }
+
+    // ROOF PETALS (Static Sakura)
+    if (isSakura) {
+       paint.color = CalmPalette.sakuraDark.withOpacity(0.7);
+       // 1. On left slope
+       canvas.drawOval(Rect.fromLTWH(w * 0.3, h * 0.32, w * 0.03, w * 0.02), paint);
+       // 2. Near Peak
+       canvas.drawOval(Rect.fromLTWH(w * 0.55, h * 0.28, w * 0.03, w * 0.02), paint);
+    }
   }
   @override
-  bool shouldRepaint(covariant _CalmHousePainter oldDelegate) => lightOpacity != oldDelegate.lightOpacity;
+  bool shouldRepaint(covariant _CalmHousePainter oldDelegate) => 
+    lightOpacity != oldDelegate.lightOpacity || isSakura != oldDelegate.isSakura;
 }
 
 // 2.5 GARDEN LAMP
@@ -448,8 +577,15 @@ class _CalmGardenLampPainter extends CustomPainter {
 class CalmTreeWidget extends StatefulWidget {
   final double size;
   final bool isFocusing;
+  final bool isSakura;
   final int delay;
-  const CalmTreeWidget({super.key, required this.size, required this.isFocusing, this.delay = 0});
+  const CalmTreeWidget({
+    super.key, 
+    required this.size, 
+    required this.isFocusing, 
+    this.isSakura = false,
+    this.delay = 0
+  });
   @override
   State<CalmTreeWidget> createState() => _CalmTreeWidgetState();
 }
@@ -488,7 +624,10 @@ class _CalmTreeWidgetState extends State<CalmTreeWidget> with SingleTickerProvid
         }
         return CustomPaint(
           size: Size(widget.size, widget.size), 
-          painter: _CalmTreePainter(swayValue: sway)
+          painter: _CalmTreePainter(
+            swayValue: sway,
+            isSakura: widget.isSakura
+          )
         );
       }
     );
@@ -497,13 +636,15 @@ class _CalmTreeWidgetState extends State<CalmTreeWidget> with SingleTickerProvid
 
 class _CalmTreePainter extends CustomPainter {
   final double swayValue;
-  _CalmTreePainter({required this.swayValue});
+  final bool isSakura;
+  
+  _CalmTreePainter({required this.swayValue, required this.isSakura});
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
     final trunkPaint = Paint()..color = CalmPalette.cliffShadow;
-    final foliagePaint = Paint()..color = CalmPalette.grassHighlight;
+    final foliagePaint = Paint()..color = isSakura ? CalmPalette.sakuraLight : CalmPalette.grassHighlight;
 
     // 1. TRUNK
     final trunkRect = Rect.fromLTWH(w * 0.48, h * 0.6, w * 0.04, h * 0.4);
@@ -513,11 +654,29 @@ class _CalmTreePainter extends CustomPainter {
     canvas.save();
     canvas.translate(w * 0.5, h * 0.6); 
     canvas.rotate(swayValue * 0.08); 
-    canvas.drawCircle(Offset(0, -h * 0.15), w * 0.25, foliagePaint);
+    
+    if (isSakura) {
+      // SAKURA SHAPE: Soft Cloud
+      // 3 overlapping circles for fluffiness
+      foliagePaint.color = CalmPalette.sakuraLight;
+      canvas.drawCircle(Offset(0, -h * 0.2), w * 0.22, foliagePaint);
+      canvas.drawCircle(Offset(-w * 0.15, -h * 0.15), w * 0.18, foliagePaint);
+      canvas.drawCircle(Offset(w * 0.15, -h * 0.15), w * 0.18, foliagePaint);
+      
+      // Depth
+      foliagePaint.color = CalmPalette.sakuraDark.withOpacity(0.3);
+      canvas.drawCircle(Offset(0, -h * 0.15), w * 0.15, foliagePaint);
+      
+    } else {
+      // NORMAL SHAPE: Simple Sphere
+      canvas.drawCircle(Offset(0, -h * 0.15), w * 0.25, foliagePaint);
+    }
+
     canvas.restore();
   }
   @override
-  bool shouldRepaint(covariant _CalmTreePainter oldDelegate) => swayValue != oldDelegate.swayValue;
+  bool shouldRepaint(covariant _CalmTreePainter oldDelegate) => 
+    swayValue != oldDelegate.swayValue || isSakura != oldDelegate.isSakura;
 }
 
 class CalmCharacterWidget extends StatelessWidget {
@@ -570,6 +729,65 @@ class CalmCharacterWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SakuraPetalPainter extends CustomPainter {
+  final double progress; // 0.0 -> 1.0 (4 seconds)
+  
+  _SakuraPetalPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..color = CalmPalette.sakuraLight;
+
+    // Draw 3 discrete petals with hardcoded paths for predictability
+    // They fall from top-ish to bottom-ish
+    
+    // Petal 1 (Left)
+    _drawPetal(canvas, w * 0.3, h * 0.4, w, h, -1.0, 0.0);
+    
+    // Petal 2 (Right)
+    _drawPetal(canvas, w * 0.7, h * 0.35, w, h, 1.0, 0.2);
+    
+    // Petal 3 (Center)
+    _drawPetal(canvas, w * 0.5, h * 0.3, w, h, 0.5, 0.4);
+  }
+
+  void _drawPetal(Canvas canvas, double startX, double startY, double w, double h, double driftDir, double timeOffset) {
+    // Current Time for this petal
+    double t = (progress + timeOffset).clamp(0.0, 1.0);
+    if (t <= 0 || t >= 1) return;
+
+    // Position Y: Falls down 20% of screen height
+    double y = startY + (h * 0.25 * t);
+    
+    // Position X: Drifts with Sine
+    double x = startX + (math.sin(t * math.pi * 3) * (w * 0.05) * driftDir);
+
+    // Rotation
+    double rotation = t * math.pi * 2 * driftDir;
+    
+    // Opacity Fade In/Out
+    double opacity = 1.0;
+    if (t < 0.2) opacity = t / 0.2;
+    else if (t > 0.8) opacity = (1.0 - t) / 0.2;
+    
+    final paint = Paint()..color = CalmPalette.sakuraLight.withOpacity(opacity * 0.8);
+
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.rotate(rotation);
+    
+    // Draw Petal (Small Oval)
+    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: w * 0.02, height: w * 0.015), paint);
+    
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _SakuraPetalPainter oldDelegate) => progress != oldDelegate.progress;
 }
 
 enum CharacterViewMode { front, side }

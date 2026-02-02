@@ -41,9 +41,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
-    final themeMode = ref.watch(themeProvider);
+    final themeState = ref.watch(themeProvider); // Returns ThemeState object now
     final isFocusing = timerState.status == TimerStatus.running;
-    final isNight = themeMode == AppThemeMode.night;
+    final isNight = themeState.mode == AppThemeMode.night;
 
     // Listen for completion
     ref.listen(timerProvider, (previous, next) {
@@ -105,7 +105,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Positioned.fill(
             child: IslandVisualStack(
               isFocusing: isFocusing,
-              currentTheme: themeMode,
+              themeState: themeState,
             ),
           ),
           
