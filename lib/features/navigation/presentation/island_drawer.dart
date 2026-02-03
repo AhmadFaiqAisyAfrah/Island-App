@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
+import '../../../../services/auth_service.dart';
 
 class IslandDrawer extends ConsumerWidget {
   const IslandDrawer({super.key});
@@ -58,6 +59,8 @@ class IslandDrawer extends ConsumerWidget {
                   );
                 },
               ),
+              const Spacer(),
+              const _AuthSection(),
             ],
           ),
         ),
@@ -270,6 +273,118 @@ class PlaceholderScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AuthSection extends ConsumerWidget {
+  const _AuthSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+
+    return authState.when(
+      data: (user) {
+        if (user != null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Signed in as",
+                style: AppTextStyles.body.copyWith(color: AppColors.textSub, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user.email ?? "User",
+                style: AppTextStyles.subHeading.copyWith(fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                   await ref.read(authServiceProvider).signOut();
+                },
+                child: Text(
+                  "Sign out", 
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textMain, 
+                    decoration: TextDecoration.underline,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        return const _GoogleSignInButton();
+      },
+      loading: () => const SizedBox(height: 20),
+      error: (_, __) => const _GoogleSignInButton(),
+    );
+  }
+}
+
+class _GoogleSignInButton extends ConsumerWidget {
+  const _GoogleSignInButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Save your progress",
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSub,
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Material(
+          color: Colors.white.withOpacity(0.9),
+          elevation: 0, 
+          borderRadius: BorderRadius.circular(30),
+          child: InkWell(
+            onTap: () async {
+              await ref.read(authServiceProvider).signInWithGoogle();
+            },
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.textSub.withOpacity(0.2)),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Minimal G logo representation
+                  Container(
+                    width: 16, height: 16,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue, 
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text("G", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Continue with Google",
+                    style: AppTextStyles.subHeading.copyWith(
+                      color: AppColors.textMain,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

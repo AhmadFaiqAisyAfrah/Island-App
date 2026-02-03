@@ -13,6 +13,8 @@ import 'distant_scenery.dart';
 import 'dart:math' as math;
 import '../../shop/data/currency_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
+import '../../music/presentation/music_button.dart';
+import '../../music/data/audio_service.dart'; // Import Provider
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -61,6 +63,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         
         // Award Coins
         ref.read(currencyProvider.notifier).addCoins(reward);
+
+        // Music continues independent of timer
+        // ref.read(audioServiceProvider.notifier).stopPlayback();
 
         showDialog(
           context: context, 
@@ -356,17 +361,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             if (isFocusing) const SizedBox(height: 64), // Increased spacing
 
                             // Primary Action Button
-                            _AnimatedFocusButton(
-                               isFocusing: isFocusing,
-                               themeState: themeState,
-                               onTap: () {
-                                 if (isFocusing) {
-                                   ref.read(timerProvider.notifier).reset();
-                                 } else {
-                                   _updateQuote(); 
-                                   ref.read(timerProvider.notifier).start();
-                                 }
-                               },
+                            // Primary Action Button & Music Toggle
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                              child: SizedBox(
+                                height: 80, // Sufficient height for the button
+                                width: double.infinity,
+                                child: Stack(
+                                  children: [
+                                    // Focus Button (Always Centered)
+                                    Center(
+                                      child: _AnimatedFocusButton(
+                                        isFocusing: isFocusing,
+                                        themeState: themeState,
+                                        onTap: () {
+                                          if (isFocusing) {
+                                            ref.read(timerProvider.notifier).reset();
+                                            // AUDIO FROZEN FOR MVP
+                                            // ref.read(audioServiceProvider).disable();
+                                          } else {
+                                            _updateQuote(); 
+                                            ref.read(timerProvider.notifier).start();
+                                            // AUDIO FROZEN FOR MVP
+                                            // if (ref.read(audioEnabledProvider)) {
+                                            //    ref.read(audioServiceProvider).enable();
+                                            // }
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
