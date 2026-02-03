@@ -14,7 +14,9 @@ import 'dart:math' as math;
 import '../../shop/data/currency_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
 import '../../music/presentation/music_button.dart';
+import '../../music/presentation/music_button.dart';
 import '../../music/data/audio_service.dart'; // Import Provider
+import '../../tags/presentation/tag_selector.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -133,7 +135,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Positioned.fill(
             child: IslandVisualStack(
               isFocusing: isFocusing,
-              themeState: themeState, // Passed down
+              themeState: themeState,
+              currentSeconds: isFocusing ? timerState.remainingSeconds : timerState.initialDuration,
+              totalSeconds: isFocusing ? timerState.initialDuration : 7200, 
+              onDurationChanged: (val) {
+                 if (!isFocusing) {
+                    ref.read(timerProvider.notifier).setDuration(val);
+                 }
+              },
             ),
           ),
           
@@ -265,13 +274,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       child: Container(
                                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                                          decoration: BoxDecoration(
-                                           color: const Color(0xFFF2F2F2).withOpacity(0.9), // Soft Off-White, High Opacity
+                                           color: isNight 
+                                              ? Colors.white.withOpacity(0.15) 
+                                              : Colors.white.withOpacity(0.65), // Unified Glass
                                            borderRadius: BorderRadius.circular(30),
+                                           border: Border.all(
+                                             color: Colors.white.withOpacity(0.5), 
+                                             width: 1.0
+                                           ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withOpacity(0.08),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
+                                                color: Colors.black.withOpacity(0.05),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
                                               )
                                             ],
                                          ),
@@ -305,12 +320,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                       // Bottom: Controls
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 48.0, left: 24, right: 24),
+                        padding: const EdgeInsets.only(bottom: 12.0, left: 24, right: 24), // Reduced bottom padding further to move controls lower
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
-                          // OPTICAL CENTER ALIGNMENT
+                            // OPTICAL CENTER ALIGNMENT
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+                            // TAG SELECTOR (Intention) - Fades out when focusing
+                            TagSelector(isFocusing: isFocusing),
+                            const SizedBox(height: 32), // More breathing room
+
                             // Timer Text
                             // Ensure center alignment for font quirks
                             // Timer Text
@@ -327,38 +346,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                              ),
                             
-                            // DURATION SLIDER (Idle Only)
-                            if (!isFocusing)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 24, bottom: 24),
-                                child: SizedBox(
-                                  width: 280,
-                                  child: SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 4, // Slightly thicker for visibility
-                                      activeTrackColor: Colors.white.withOpacity(0.8), // Higher contrast
-                                      inactiveTrackColor: Colors.white.withOpacity(0.3), // More visible track
-                                      thumbColor: Colors.white,
-                                      overlayColor: Colors.white.withOpacity(0.1),
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-                                    ),
-                                    child: Slider(
-                                      value: (timerState.initialDuration / 60).clamp(1, 120).toDouble(),
-                                      min: 1,
-                                      max: 120,
-                                      divisions: 119,
-                                      onChanged: (val) {
-                                        ref.read(timerProvider.notifier).setDuration(val.round());
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            // DURATION SLIDER MOVED TO ISLAND RING
                             
-                            // Spacing if Slider is hidden
-                            // Spacing if Slider is hidden
-                            if (isFocusing) const SizedBox(height: 64), // Increased spacing
+                            const SizedBox(height: 56), // Adjusted spacing to move controls down (~16px lower)
 
                             // Primary Action Button
                             // Primary Action Button & Music Toggle
@@ -499,6 +489,8 @@ class _NoisePainter extends CustomPainter {
 
 // --- WIDGETS ---
 
+  // --- WIDGETS ---
+
 class _AnimatedFocusButton extends StatefulWidget {
   final bool isFocusing;
   final ThemeState themeState;
@@ -541,42 +533,18 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
   void _onTapUp(TapUpDetails details) => _controller.reverse();
   void _onTapCancel() => _controller.reverse();
 
-  Color _getButtonColor() {
+  Color _getButtonBaseColor() {
     if (widget.isFocusing) {
-       return Colors.white.withOpacity(0.2);
+       return Colors.white.withOpacity(0.2); // Translucent when active
     }
     
     final isNight = widget.themeState.mode == AppThemeMode.night;
-    final season = widget.themeState.season;
-    final env = widget.themeState.environment;
-
-    // 1. Space Environment (Override everything)
-    if (env == AppEnvironment.space) {
-       // Dark charcoal green
-       return const Color(0xFF2F4F4F); 
-    }
-
-    // 2. Night Mode (General)
+    // Muted Green Glass Palette
     if (isNight) {
-       // Warm Olive Green
-       return const Color(0xFF556B2F); 
-    }
-
-    // 3. Day Mode (Seasonal)
-    switch (season) {
-      case AppSeason.sakura:
-        // Desaturated Sage w/ Blush
-        return const Color(0xFF8FA998); 
-      case AppSeason.autumn:
-        // Warm Moss
-        return const Color(0xFF708238); 
-      case AppSeason.winter:
-        // Cool Grey-Green
-        return const Color(0xFF78909C); 
-      case AppSeason.normal:
-      default:
-        // Standard Soft Sage
-        return AppColors.islandGrass;
+       return const Color(0xFF4A5D45).withOpacity(0.6); // Darker muted green
+    } else {
+       // Day: Soft Sage Green, slightly distinct from background but calm
+       return const Color(0xFF9FB5AB).withOpacity(0.65); 
     }
   }
 
@@ -596,18 +564,19 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
            );
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 500), // Slow color transition
+          duration: const Duration(milliseconds: 500), 
           width: widget.isFocusing ? 140 : 200,
           height: 68,
             decoration: BoxDecoration(
-              color: _getButtonColor(),
+              color: _getButtonBaseColor(),
               borderRadius: BorderRadius.circular(34),
-              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.0), // Added local border contrast
+              // Shared Material Features:
+              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.0), 
               boxShadow: widget.isFocusing ? [] : [
                  BoxShadow(
-                   color: Colors.black.withOpacity(0.25), // Slightly stronger shadow
-                   blurRadius: 16, // Softer blur
-                   offset: const Offset(0, 6), // Slightly lower
+                   color: Colors.black.withOpacity(0.05), // Unified soft shadow
+                   blurRadius: 10, 
+                   offset: const Offset(0, 4), 
                  )
               ],
             ),

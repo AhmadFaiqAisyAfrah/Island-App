@@ -8,15 +8,14 @@ import '../../../../core/theme/theme_provider.dart';
 class CalmPalette {
   // Atmospheric Gradient Colors
   // KEY: All colors must share a hue family (Blue-Grey) to blend perfectly.
-  // UPDATE: Brighter, smoother transition for Day Theme
-  static const Color skyTop = Color(0xFFF0F4F7);    // Very light airy blue-white
-  static const Color skyMist = Color(0xFFE1E7EB);   // Soft cloud grey
-  static const Color deepWater = Color(0xFFC2CCD3); // Muted light blue-grey (No dark banding)
+  // UPDATE: Muted Overcast Day Theme (Per visual comfort request)
+  static const Color skyTop = Color(0xFFD8E1E6);    // Muted grey-blue (Overcast, not bright white)
+  static const Color skyMist = Color(0xFFCED6DA);   // Soft neutral grey
+  static const Color deepWater = Color(0xFFB0BBC2); // Grounded slate blue-grey
   
   // Night Theme (Focus State)
   static const Color nightSkyTop = Color(0xFF37474F);    // Deep Calm Blue-Grey
   static const Color nightSkyMist = Color(0xFF546E7A);   // Muted Slate
-
   static const Color nightDeepWater = Color(0xFF263238); // Abyss
   
   // Lighting
@@ -28,39 +27,36 @@ class CalmPalette {
   
   // Cliff now has a gradient, these are the stops
   static const Color cliffTop = Color(0xFF6D6466);  // Warm Grey
-  static const Color cliffBottom = Color(0xFFC2CCD3); // Matches deepWater exactly!
+  static const Color cliffBottom = Color(0xFFB0BBC2); // Matches deepWater exactly!
   static const Color cliffShadow = Color(0xFF585052); // Restored
   
+  // ... (Other colors unchanged) 
   static const Color sandBase = Color(0xFFE0D8CC);  
   
-  // Structures
   static const Color houseWall = Color(0xFFD7CCC8); 
   static const Color houseRoof = Color(0xFF8D6E63); 
   static const Color houseDoor = Color(0xFF8D6E63); 
   
-  // Character
   static const Color charSkin = Color(0xFFFFCCBC); 
   static const Color charCloth = Color(0xFF5D4037); 
   
-  // Sakura Season
-  static const Color sakuraLight = Color(0xFFE6C9C9); // Muted Dusty Pink
-  static const Color sakuraDark = Color(0xFFD7A7A7);  // Soft darker tone
+  // Seasons...
+  static const Color sakuraLight = Color(0xFFE6C9C9); 
+  static const Color sakuraDark = Color(0xFFD7A7A7);  
   
-  // Autumn Season
-  static const Color autumnSky = Color(0xFFE0E5E8); // Warmer Blue-Grey
-  static const Color autumnMist = Color(0xFFD7D3CE); // Soft Beige Mist
-  static const Color autumnGround = Color(0xFF9E9D89); // Olive/Warm Brown-Green
-  static const Color autumnLeafLight = Color(0xFFD4A373); // Muted Orange/Amber
-  static const Color autumnLeafDark = Color(0xFFA67C52); // Warm Brown
+  static const Color autumnSky = Color(0xFFE0E5E8); 
+  static const Color autumnMist = Color(0xFFD7D3CE); 
+  static const Color autumnGround = Color(0xFF9E9D89); 
+  static const Color autumnLeafLight = Color(0xFFD4A373); 
+  static const Color autumnLeafDark = Color(0xFFA67C52); 
   
-  // Winter Season
-  static const Color winterSky = Color(0xFFE8ECEF); // Very Light Cool Grey
-  static const Color winterDayMist = Color(0xFFDEE4E8); // Icy Mist
-  static const Color winterNightTop = Color(0xFF2C3E50); // Deep Blue Grey
-  static const Color winterNightBot = Color(0xFF34495E); // Lighter Blue Grey
-  static const Color snowWhite = Color(0xFFFDFDFD); // Pure soft white
-  static const Color snowShadow = Color(0xFFECF0F1); // Light cool shadow
-  static const Color pineGreen = Color(0xFF4A6B5D); // Muted Winter Green
+  static const Color winterSky = Color(0xFFE8ECEF); 
+  static const Color winterDayMist = Color(0xFFDEE4E8); 
+  static const Color winterNightTop = Color(0xFF2C3E50); 
+  static const Color winterNightBot = Color(0xFF34495E); 
+  static const Color snowWhite = Color(0xFFFDFDFD); 
+  static const Color snowShadow = Color(0xFFECF0F1); 
+  static const Color pineGreen = Color(0xFF4A6B5D); 
 }
 
 class IslandBaseLayer extends StatefulWidget {
@@ -80,13 +76,13 @@ class IslandBaseLayer extends StatefulWidget {
 }
 
 class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderStateMixin {
-  // ... (Keep existing animation controllers)
+  // ... (Animation Controllers)
   late AnimationController _patrolController;
   late AnimationController _walkCycleController;
-  late AnimationController _petalController; // New: Petal Animation
+  late AnimationController _petalController; 
   
   Timer? _behaviorTimer;
-  Timer? _petalTimer; // Periodic petal waves
+  Timer? _petalTimer;
   bool _isCharacterWalking = true;
 
   @override
@@ -104,20 +100,18 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
 
     _petalController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4), // 4 seconds of gentle falling
+      duration: const Duration(seconds: 4), 
     );
 
     if (widget.isFocusing) {
       _startAnimations(); 
-      _checkPetalStart(); // Initial check
+      _checkPetalStart(); 
     }
   }
 
   @override
   void didUpdateWidget(IslandBaseLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
-    // 1. FOCUS CHANGE
     if (widget.isFocusing != oldWidget.isFocusing) {
       if (widget.isFocusing) {
         _startAnimations();
@@ -127,14 +121,11 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
         _stopPetalLoop();
       }
     }
-    
-    // 2. SEASON CHANGE (While Focusing)
     if (widget.isFocusing && widget.themeState.season != oldWidget.themeState.season) {
-      _checkPetalStart(); // Will start or stop based on new season
+      _checkPetalStart(); 
     }
   }
   
-  // ... (Keep existing methods: _startAnimations, _stopAnimations, _scheduleBehavior)
   void _startAnimations() {
     _scheduleBehavior();
   }
@@ -146,13 +137,9 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     _walkCycleController.animateTo(0, duration: const Duration(milliseconds: 200));
   }
   
-  // --- PETAL LOGIC ---
-  
   void _checkPetalStart() {
-    // Only run if Focusing AND (Sakura OR Autumn OR Winter)
     final season = widget.themeState.season;
     if (widget.isFocusing && (season == AppSeason.sakura || season == AppSeason.autumn || season == AppSeason.winter)) {
-      // Restart loop
       _stopPetalLoop();
       _schedulePetalWave(initialDelay: Duration.zero);
     } else {
@@ -168,14 +155,9 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
 
   void _schedulePetalWave({Duration? initialDelay}) {
     if (!mounted || !widget.isFocusing) return;
-    
     final season = widget.themeState.season;
     if (season != AppSeason.sakura && season != AppSeason.autumn && season != AppSeason.winter) return;
     
-    // Delay: Faster for both
-    // Sakura: 3-5s
-    // Autumn: 4-6s
-    // Winter: 5-8s (Slower, calmer)
     int baseDelay = 3;
     if (season == AppSeason.autumn) baseDelay = 4;
     if (season == AppSeason.winter) baseDelay = 5;
@@ -184,10 +166,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     
     _petalTimer = Timer(delay, () {
       if (!mounted) return;
-      
-      // Trigger Animation
       _petalController.forward(from: 0.0).then((_) {
-         // When done, schedule next
          _schedulePetalWave();
       });
     });
@@ -195,13 +174,10 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   
   void _scheduleBehavior() {
     if (!mounted || !widget.isFocusing) return;
-
     final isWalking = _isCharacterWalking;
     final duration = Duration(seconds: 4 + math.Random().nextInt(4));
-        
     setState(() {
       _isCharacterWalking = !isWalking; 
-      
       if (_isCharacterWalking) {
         _patrolController.repeat(reverse: true);
         _walkCycleController.repeat();
@@ -210,7 +186,6 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
         _walkCycleController.animateTo(0, duration: const Duration(milliseconds: 200)); 
       }
     });
-
     _behaviorTimer = Timer(duration, _scheduleBehavior);
   }
 
@@ -227,13 +202,11 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     final w = widget.width;
+    final isNight = widget.themeState.mode == AppThemeMode.night;
     
-    // LIGHTING LOGIC: Variable Intensity
-    // Day: 0.0
-    // Night Idle: 0.3 (Soft glow)
-    // Night Focus: 0.8 (Brighter, more welcoming)
+    // LIGHTING LOGIC
     double lightIntensity = 0.0;
-    if (widget.themeState.mode == AppThemeMode.night) {
+    if (isNight) {
        lightIntensity = widget.isFocusing ? 0.8 : 0.3;
     }
 
@@ -241,10 +214,16 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     final bool isAutumn = widget.themeState.season == AppSeason.autumn;
     final bool isWinter = widget.themeState.season == AppSeason.winter;
 
+    // SHADOW LOGIC
+    // Day: Neutral grounding shadow (Grey-Brown)
+    // Night: Deep ambient darkness (Blue-Grey)
+    final Color shadowColor = isNight 
+         ? CalmPalette.nightDeepWater.withOpacity(0.3) 
+         : const Color(0xFF6B645D).withOpacity(0.18); // Neutral grounding shadow
+
     return Container(
       width: w,
       height: w, 
-      // TRANSPARENT BACKGROUND - World Context provided by Parent
       decoration: const BoxDecoration(
         color: Colors.transparent, 
       ),
@@ -254,17 +233,17 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
         children: [
               // 0. SOFT FLOATING SHADOW (Atmospheric Grounding)
           Positioned(
-             bottom: w * 0.08, // Slightly higher to 'float'
+             bottom: w * 0.08, 
              child: Container(
                width: w * 0.85,
                height: w * 0.25,
                decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(w), // Oval shape
+                 borderRadius: BorderRadius.circular(w), 
                  boxShadow: [
                    BoxShadow(
-                     color: CalmPalette.deepWater.withOpacity(0.15), // Very subtle ambient dark
-                     blurRadius: 40, // Large blur for "air" feel
-                     spreadRadius: -10, // Feathered edges
+                     color: shadowColor, 
+                     blurRadius: isNight ? 50 : 30, // Tighter for day
+                     spreadRadius: isNight ? -5 : -8, 
                      offset: const Offset(0, 10),
                    ),
                  ],
