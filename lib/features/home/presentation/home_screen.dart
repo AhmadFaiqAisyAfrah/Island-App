@@ -14,6 +14,8 @@ import 'dart:math' as math;
 import '../../shop/data/currency_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
 import '../../music/presentation/music_button.dart';
+import '../../archipelago/data/archipelago_provider.dart';
+import '../../tags/presentation/tags_provider.dart';
 import '../../music/presentation/music_button.dart';
 import '../../music/data/audio_service.dart'; // Import Provider
 import '../../tags/presentation/tag_selector.dart';
@@ -65,6 +67,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         
         // Award Coins
         ref.read(currencyProvider.notifier).addCoins(reward);
+
+        // Archipelago: Save Daily Progress
+        final selectedTag = ref.read(selectedTagProvider);
+        ref.read(archipelagoProvider.notifier).addSession(
+          durationSeconds: next.initialDuration, 
+          tagLabel: selectedTag.label, 
+          tagEmoji: selectedTag.emoji
+        );
 
         // Music continues independent of timer
         // ref.read(audioServiceProvider.notifier).stopPlayback();

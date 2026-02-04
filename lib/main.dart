@@ -4,13 +4,25 @@ import 'core/theme/app_theme.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'features/archipelago/data/archipelago_repository.dart';
+import 'features/archipelago/data/archipelago_provider.dart';
+import 'core/data/shared_preferences_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   
+  final prefs = await SharedPreferences.getInstance();
+  final repository = ArchipelagoRepository(prefs);
+
   runApp(
-    const ProviderScope(
-      child: IslandApp(),
+    ProviderScope(
+      overrides: [
+        archipelagoRepoProvider.overrideWithValue(repository),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const IslandApp(),
     ),
   );
 }

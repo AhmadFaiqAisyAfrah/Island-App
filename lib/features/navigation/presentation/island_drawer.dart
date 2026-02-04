@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
+import '../../archipelago/presentation/archipelago_screen.dart';
 import '../../../../services/auth_service.dart';
 
 class IslandDrawer extends ConsumerWidget {
@@ -39,6 +40,17 @@ class IslandDrawer extends ConsumerWidget {
                 label: "Island",
                 isActive: true,
                 onTap: () => Navigator.pop(context), 
+              ),
+              _DrawerItem(
+                label: "Journal",
+                isActive: false, 
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const ArchipelagoScreen())
+                  );
+                },
               ),
               _DrawerItem(
                 label: "Themes",

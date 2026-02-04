@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/data/shared_preferences_provider.dart';
 
 
 enum AppThemeMode {
@@ -60,27 +62,50 @@ class ThemeState {
 }
 
 class ThemeNotifier extends StateNotifier<ThemeState> {
-  ThemeNotifier() : super(const ThemeState());
+  final SharedPreferences _prefs;
+  static const _keyMode = 'theme_mode';
+  static const _keySeason = 'theme_season';
+  static const _keyEnvironment = 'theme_env';
+
+  ThemeNotifier(this._prefs) : super(const ThemeState()) {
+    _loadTheme();
+  }
+
+  void _loadTheme() {
+    final modeIndex = _prefs.getInt(_keyMode) ?? 0;
+    final seasonIndex = _prefs.getInt(_keySeason) ?? 0;
+    final envIndex = _prefs.getInt(_keyEnvironment) ?? 0;
+
+    state = ThemeState(
+      mode: AppThemeMode.values.length > modeIndex ? AppThemeMode.values[modeIndex] : AppThemeMode.day,
+      season: AppSeason.values.length > seasonIndex ? AppSeason.values[seasonIndex] : AppSeason.normal,
+      environment: AppEnvironment.values.length > envIndex ? AppEnvironment.values[envIndex] : AppEnvironment.defaultSky,
+    );
+  }
 
   void setMode(AppThemeMode mode) {
     state = state.copyWith(mode: mode);
+    _prefs.setInt(_keyMode, mode.index);
   }
   
   void setSeason(AppSeason season) {
     state = state.copyWith(season: season);
+    _prefs.setInt(_keySeason, season.index);
   }
   
   void setEnvironment(AppEnvironment environment) {
     state = state.copyWith(environment: environment);
+    _prefs.setInt(_keyEnvironment, environment.index);
   }
   
   void toggleMode() {
-    state = state.copyWith(
-      mode: state.mode == AppThemeMode.day ? AppThemeMode.night : AppThemeMode.day
-    );
+    final newMode = state.mode == AppThemeMode.day ? AppThemeMode.night : AppThemeMode.day;
+    state = state.copyWith(mode: newMode);
+    _prefs.setInt(_keyMode, newMode.index);
   }
 }
 
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeState>((ref) {
-  return ThemeNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return ThemeNotifier(prefs);
 });
