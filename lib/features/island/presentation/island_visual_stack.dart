@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import 'layers/sky_layer.dart';
 import 'layers/ocean_layer.dart';
 import 'layers/island_base_layer.dart';
+import 'layers/glass_dome_layer.dart';
 
 import '../../../../core/theme/theme_provider.dart';
 
@@ -33,8 +34,12 @@ class IslandVisualStack extends StatelessWidget {
         final h = constraints.maxHeight;
         
         // Define sizes relative to width
+        // Define sizes relative to width
         final islandWidth = w * 0.75;
-        final sliderWidth = w * 0.86; // Reduced radius for breathing room
+        // Slider sits exactly on the dome scaling (1.15x).
+        // Slider has internal padding of 8px per side (16px total).
+        // To align track to dome border: Width = (Island * 1.15) + 16.
+        final sliderWidth = (islandWidth * 1.15) + 16; 
 
         return Stack(
           alignment: Alignment.center,
@@ -69,14 +74,55 @@ class IslandVisualStack extends StatelessWidget {
                       },
                     ),
 
+                    // A.5 REFLECTIVE FOCUS DOME (Animated Scale)
+                    TweenAnimationBuilder<double>(
+                      duration: const Duration(seconds: 2),
+                      curve: Curves.easeInOutSine,
+                      tween: Tween(
+                        begin: 1.0, 
+                        end: isFocusing ? 1.06 : 1.0
+                      ),
+                      builder: (context, scale, child) {
+                        return Transform.scale(
+                          scale: scale,
+                          child: GlassDomeLayer(
+                            width: islandWidth, 
+                            themeState: themeState
+                          ),
+                        );
+                      },
+                    ),
+
                     // B. The Slider (Outer Ring)
-                    CircularDurationSlider(
-                      width: sliderWidth,
-                      currentCheckSeconds: currentSeconds,
-                      totalSeconds: totalSeconds,
-                      isFocusing: isFocusing,
-                      themeState: themeState,
-                      onDurationChanged: onDurationChanged,
+                    // Animation: Fades out fast on focus. Fades in slow (delayed) on finish.
+                    TweenAnimationBuilder<double>(
+                      duration: isFocusing 
+                          ? const Duration(milliseconds: 300) 
+                          : const Duration(milliseconds: 2300), // Wait for dome shrink (2000ms)
+                      curve: isFocusing 
+                          ? Curves.easeOut 
+                          : const Interval(0.85, 1.0, curve: Curves.easeIn), // Late fade in
+                      tween: Tween<double>(
+                        begin: 1.0,
+                        end: isFocusing ? 0.0 : 1.0
+                      ),
+                      builder: (context, opacity, child) {
+                        return Opacity(
+                          opacity: opacity,
+                          child: IgnorePointer(
+                            ignoring: opacity < 0.1 || isFocusing,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: CircularDurationSlider(
+                        width: sliderWidth,
+                        currentCheckSeconds: currentSeconds,
+                        totalSeconds: totalSeconds,
+                        isFocusing: isFocusing,
+                        themeState: themeState,
+                        onDurationChanged: onDurationChanged,
+                      ),
                     ),
                   ],
                 ),

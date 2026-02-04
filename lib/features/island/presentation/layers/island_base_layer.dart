@@ -26,8 +26,8 @@ class CalmPalette {
   static const Color grassHighlight = Color(0xFF9FB5AB); // Restored
   
   // Cliff now has a gradient, these are the stops
-  static const Color cliffTop = Color(0xFF6D6466);  // Warm Grey
-  static const Color cliffBottom = Color(0xFFB0BBC2); // Matches deepWater exactly!
+  static const Color cliffTop = Color(0xFF645C5E);  // Darker Warm Grey (~8% darker)
+  static const Color cliffBottom = Color(0xFF5A5254); // Darker Grey (Solid Gradient)
   static const Color cliffShadow = Color(0xFF585052); // Restored
   
   // ... (Other colors unchanged) 

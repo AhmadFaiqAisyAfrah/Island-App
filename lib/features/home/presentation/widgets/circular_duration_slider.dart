@@ -103,10 +103,10 @@ class _CircularDurationSliderState extends State<CircularDurationSlider> {
 
   @override
   Widget build(BuildContext context) {
-    // FOCUS STATE BEHAVIOR: Completely Hide
-    if (widget.isFocusing) {
-       return const SizedBox.shrink(); 
-    }
+    // FOCUS STATE BEHAVIOR: Handled by Parent Opacity
+    // if (widget.isFocusing) {
+    //    return const SizedBox.shrink(); 
+    // }
 
     return GestureDetector(
       onPanUpdate: _handlePan,
