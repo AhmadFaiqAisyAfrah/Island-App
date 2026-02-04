@@ -48,9 +48,6 @@ class _SceneryPainter extends CustomPainter {
       case AppEnvironment.beach:
         _drawBeach(canvas, w, h, paint);
         break;
-      case AppEnvironment.space:
-        _drawSpace(canvas, w, h, paint);
-        break;
       default:
         break;
     }
@@ -106,26 +103,6 @@ class _SceneryPainter extends CustomPainter {
       ? const Color(0xFF1A2A3A).withOpacity(0.8) 
       : const Color(0xFF4FA4F2).withOpacity(0.3);
     canvas.drawRect(oceanRect, paint);
-  }
-
-  void _drawSpace(Canvas canvas, double w, double h, Paint paint) {
-    // Stars
-    final random = math.Random(123);
-    paint.color = Colors.white.withOpacity(isNight ? 0.6 : 0.2);
-    
-    for (int i = 0; i < 100; i++) {
-        double x = random.nextDouble() * w;
-        double y = random.nextDouble() * h * 0.6; // Top 60% only
-        double r = random.nextDouble() * 2;
-        canvas.drawCircle(Offset(x,y), r, paint);
-    }
-    
-    // Maybe a Planet?
-    paint.color = isNight 
-        ? const Color(0xFFE0E0E0).withOpacity(0.1) // Moon-ish
-        : const Color(0xFFFFD700).withOpacity(0.1); // Sun-ish
-        
-    canvas.drawCircle(Offset(w * 0.8, h * 0.2), 40, paint);
   }
 
   @override

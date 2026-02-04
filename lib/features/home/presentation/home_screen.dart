@@ -9,6 +9,7 @@ import '../../focus_guide/data/quotes_repository.dart';
 
 import '../../../../core/theme/theme_provider.dart';
 import 'distant_scenery.dart';
+import 'star_scatter.dart';
 
 import 'dart:math' as math;
 import '../../shop/data/currency_provider.dart';
@@ -135,6 +136,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 )
              )
           ),
+
+          // 1.25 STAR SCATTER (Global Night Layer)
+          // Always present at night, behind scenery.
+          if (isNight)
+             const Positioned.fill(
+               child: StarScatter(count: 60), 
+             ),
 
           // 1.5 DISTANT SCENERY (Environment Specific)
           Positioned.fill(
@@ -433,10 +441,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return isNight 
           ? [const Color(0xFF093028), const Color(0xFF237A57)] 
           : [const Color(0xFFD3CCE3), const Color(0xFFE9E4F0)]; 
-
-      case AppEnvironment.space:
-        // Always deep dark
-        return [const Color(0xFF000000), const Color(0xFF434343)]; 
 
       case AppEnvironment.defaultSky:
       default:

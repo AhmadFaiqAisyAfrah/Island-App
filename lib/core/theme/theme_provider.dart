@@ -21,7 +21,6 @@ enum AppEnvironment {
   mountain,
   beach,
   forest,
-  space,
 }
 
 @immutable

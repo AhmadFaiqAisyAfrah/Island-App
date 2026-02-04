@@ -95,79 +95,103 @@ class ThemeSelectorDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(themeProvider);
     
+    // Define Theme Data (UI Presentation)
+    final seasonalOptions = [
+      _ThemeItem(
+        label: "Original",
+        season: AppSeason.normal,
+        color: const Color(0xFFB5D491),
+        assetPath: "assets/themes/original_season.png",
+      ),
+      _ThemeItem(
+        label: "Sakura",
+        season: AppSeason.sakura,
+        color: const Color(0xFFFFC0CB),
+        assetPath: "assets/themes/sakura_season.png",
+      ),
+      _ThemeItem(
+        label: "Autumn",
+        season: AppSeason.autumn,
+        color: const Color(0xFFD48C70),
+        assetPath: "assets/themes/autumn_season.png",
+      ),
+      _ThemeItem(
+        label: "Winter",
+        season: AppSeason.winter,
+        color: const Color(0xFFE3F2FD),
+        assetPath: "assets/themes/winter_season.png",
+      ),
+    ];
+
+    final envOptions = [
+      _ThemeItem(
+        label: "Default Sky",
+        environment: AppEnvironment.defaultSky,
+        color: const Color(0xFFC4E0E5),
+        assetPath: "assets/themes/default_sky.png",
+      ),
+      _ThemeItem(
+        label: "Mountain",
+        environment: AppEnvironment.mountain,
+        color: const Color(0xFF7B7D87),
+        assetPath: "assets/themes/mountain.png",
+      ),
+      _ThemeItem(
+        label: "Beach",
+        environment: AppEnvironment.beach,
+        color: const Color(0xFF89F7FE),
+        assetPath: "assets/themes/beach.png",
+      ),
+      _ThemeItem(
+        label: "Forest",
+        environment: AppEnvironment.forest,
+        color: const Color(0xFF237A57),
+        assetPath: "assets/themes/forest.png",
+      ),
+    ];
+
     return AlertDialog(
       backgroundColor: AppColors.skyBottom,
-      title: Text("Select Theme", style: AppTextStyles.heading.copyWith(fontSize: 20)),
-      content: SingleChildScrollView( // Safety
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // SEASONAL (Island)
-            Text("Seasonal", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Original",
-              isSelected: state.season == AppSeason.normal,
-              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.normal),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Sakura",
-              isSelected: state.season == AppSeason.sakura,
-              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.sakura),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Autumn",
-              isSelected: state.season == AppSeason.autumn,
-              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.autumn),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Winter",
-              isSelected: state.season == AppSeason.winter,
-              onTap: () => ref.read(themeProvider.notifier).setSeason(AppSeason.winter),
-            ),
-            
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: Divider(color: AppColors.textSub, height: 1),
-            ),
-            
-            // ENVIRONMENT (World)
-            Text("Environment", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub)),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Default Sky",
-              isSelected: state.environment == AppEnvironment.defaultSky,
-              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.defaultSky),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Mountain Horizon",
-              isSelected: state.environment == AppEnvironment.mountain,
-              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.mountain),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Beach Breeze",
-              isSelected: state.environment == AppEnvironment.beach,
-              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.beach),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Forest Fog",
-              isSelected: state.environment == AppEnvironment.forest,
-              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.forest),
-            ),
-            const SizedBox(height: 8),
-            _ThemeOption(
-              label: "Space Night",
-              isSelected: state.environment == AppEnvironment.space,
-              onTap: () => ref.read(themeProvider.notifier).setEnvironment(AppEnvironment.space),
-            ),
-          ],
+      contentPadding: const EdgeInsets.all(24),
+      title: Text("Select Theme", style: AppTextStyles.heading.copyWith(fontSize: 24)),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // SEASONAL
+              Text("Seasonal", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: seasonalOptions.map((item) => _ThemeCard(
+                  item: item,
+                  isSelected: state.season == item.season,
+                  onTap: () => ref.read(themeProvider.notifier).setSeason(item.season),
+                )).toList(),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // ENVIRONMENT
+              Text("Environment", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: envOptions.map((item) => _ThemeCard(
+                  item: item,
+                  isSelected: state.environment == item.environment,
+                  onTap: () => ref.read(themeProvider.notifier).setEnvironment(item.environment),
+                )).toList(),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -176,42 +200,114 @@ class ThemeSelectorDialog extends ConsumerWidget {
           child: Text("Done", style: AppTextStyles.subHeading.copyWith(fontSize: 16)),
         )
       ],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
     );
   }
 }
 
-class _ThemeOption extends StatelessWidget {
+// Data Helper
+class _ThemeItem {
   final String label;
+  // Use dynamic to allow either enum, or nullable fields
+  final dynamic season; 
+  final dynamic environment;
+  final Color color; // Fallback
+  final String assetPath;
+
+  _ThemeItem({
+    required this.label,
+    required this.color,
+    required this.assetPath,
+    this.season,
+    this.environment,
+  });
+}
+
+class _ThemeCard extends StatelessWidget {
+  final _ThemeItem item;
   final bool isSelected;
   final VoidCallback onTap;
-  
-  const _ThemeOption({required this.label, required this.isSelected, required this.onTap});
+
+  const _ThemeCard({
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Slightly larger for better visibility of images
+    const double cardWidth = 110; 
+    const double cardHeight = 120;
+
     return Material(
-      color: isSelected ? AppColors.islandGrass.withOpacity(0.2) : Colors.transparent,
-      // borderRadius removed (conflict with shape)
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSelected 
-          ? const BorderSide(color: AppColors.islandGrass, width: 2) 
-          : const BorderSide(color: Colors.transparent, width: 2),
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          child: Row(
-            children: [
-              Text(label, style: AppTextStyles.subHeading.copyWith(color: AppColors.textMain)),
-              const Spacer(),
-              if (isSelected) 
-                Icon(Icons.check_circle, color: AppColors.islandGrass, size: 20),
-            ],
+          width: cardWidth,
+          height: cardHeight,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: isSelected 
+              ? Border.all(color: AppColors.islandGrass, width: 3)
+              : Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+            boxShadow: isSelected 
+              ? [BoxShadow(color: AppColors.islandGrass.withOpacity(0.3), blurRadius: 8, offset: const Offset(0,4))] 
+              : [],
+          ),
+          child: ClipRRect(
+             borderRadius: BorderRadius.circular(13), 
+             child: Column(
+               children: [
+                 // IMAGE AREA
+                 Expanded(
+                   flex: 3,
+                   child: Stack(
+                     fit: StackFit.expand,
+                     children: [
+                       Container(
+                         color: item.color.withOpacity(0.3), // Fallback base
+                         child: Image.asset(
+                           item.assetPath,
+                           fit: BoxFit.cover,
+                           errorBuilder: (context, error, stackTrace) {
+                              return Container(color: item.color); // Graceful fallback
+                           },
+                         ),
+                       ),
+                       if (isSelected) 
+                         Container(
+                           color: Colors.black.withOpacity(0.1),
+                           child: Center(child: Icon(Icons.check_circle_rounded, color: Colors.white.withOpacity(0.9), size: 32)),
+                         ),
+                     ],
+                   ),
+                 ),
+                 // TEXT AREA
+                 Expanded(
+                   flex: 2,
+                   child: Container(
+                     width: double.infinity,
+                     alignment: Alignment.center,
+                     color: Colors.white.withOpacity(0.9),
+                     padding: const EdgeInsets.symmetric(horizontal: 4),
+                     child: Text(
+                       item.label,
+                       textAlign: TextAlign.center,
+                       style: AppTextStyles.body.copyWith(
+                         fontSize: 12, 
+                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                         height: 1.1
+                       ),
+                       maxLines: 2,
+                     ),
+                   ),
+                 ),
+               ],
+             ),
           ),
         ),
       ),
