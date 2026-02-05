@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart'; // Import theme provider
+import '../../../../core/data/feature_discovery_provider.dart';
+import '../../../../core/widgets/glass_hint.dart';
 import '../domain/tag_model.dart';
 import 'tags_provider.dart';
 import 'dart:io';
@@ -104,18 +106,37 @@ class TagSelector extends ConsumerWidget {
   }
 }
 
-class _TagSelectionSheet extends ConsumerWidget {
+class _TagSelectionSheet extends ConsumerStatefulWidget {
   const _TagSelectionSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TagSelectionSheet> createState() => _TagSelectionSheetState();
+}
+
+class _TagSelectionSheetState extends ConsumerState<_TagSelectionSheet> {
+  bool _showTagHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final discovery = ref.read(featureDiscoveryProvider);
+      if (!discovery.hasSeenTagHint) {
+        setState(() => _showTagHint = true);
+        ref.read(featureDiscoveryProvider.notifier).markTagHintSeen();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final allTags = ref.watch(allTagsProvider);
     final selectedTag = ref.watch(selectedTagProvider);
 
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: AppColors.skyBottom, 
+        color: AppColors.skyBottom,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -134,8 +155,14 @@ class _TagSelectionSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text("Set Intention", style: AppTextStyles.heading.copyWith(fontSize: 18)),
+          if (_showTagHint) ...[
+            const SizedBox(height: 12),
+            GlassHint(
+              text: 'Name your focus. Small rituals matter.',
+              onDismiss: () => setState(() => _showTagHint = false),
+            ),
+          ],
           const SizedBox(height: 16),
-          
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -144,7 +171,6 @@ class _TagSelectionSheet extends ConsumerWidget {
               _buildCustomTagButton(context, ref),
             ],
           ),
-          // Safety padding for safe area
           SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
         ],
       ),

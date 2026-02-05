@@ -16,6 +16,8 @@ class IslandVisualStack extends StatelessWidget {
   final int currentSeconds; // Current setting OR remaining time
   final int totalSeconds;   // Max setting (7200) OR initial duration
   final ValueChanged<int>? onDurationChanged;
+  final bool showSlider;
+  final bool enableCharacterIdleMotion;
 
   const IslandVisualStack({
     super.key,
@@ -24,6 +26,8 @@ class IslandVisualStack extends StatelessWidget {
     required this.currentSeconds,
     required this.totalSeconds,
     this.onDurationChanged,
+    this.showSlider = true,
+    this.enableCharacterIdleMotion = false,
   });
 
   @override
@@ -68,7 +72,8 @@ class IslandVisualStack extends StatelessWidget {
                           child: IslandBaseLayer(
                             isFocusing: isFocusing, 
                             themeState: themeState,
-                            width: islandWidth
+                            width: islandWidth,
+                            enableCharacterIdleMotion: enableCharacterIdleMotion,
                           ), 
                         );
                       },
@@ -93,37 +98,36 @@ class IslandVisualStack extends StatelessWidget {
                       },
                     ),
 
-                    // B. The Slider (Outer Ring)
-                    // Animation: Fades out fast on focus. Fades in slow (delayed) on finish.
-                    TweenAnimationBuilder<double>(
-                      duration: isFocusing 
-                          ? const Duration(milliseconds: 300) 
-                          : const Duration(milliseconds: 2300), // Wait for dome shrink (2000ms)
-                      curve: isFocusing 
-                          ? Curves.easeOut 
-                          : const Interval(0.85, 1.0, curve: Curves.easeIn), // Late fade in
-                      tween: Tween<double>(
-                        begin: 1.0,
-                        end: isFocusing ? 0.0 : 1.0
+                    if (showSlider)
+                      TweenAnimationBuilder<double>(
+                        duration: isFocusing
+                            ? const Duration(milliseconds: 300)
+                            : const Duration(milliseconds: 2300), // Wait for dome shrink (2000ms)
+                        curve: isFocusing
+                            ? Curves.easeOut
+                            : const Interval(0.85, 1.0, curve: Curves.easeIn), // Late fade in
+                        tween: Tween<double>(
+                          begin: 1.0,
+                          end: isFocusing ? 0.0 : 1.0
+                        ),
+                        builder: (context, opacity, child) {
+                          return Opacity(
+                            opacity: opacity,
+                            child: IgnorePointer(
+                              ignoring: opacity < 0.1 || isFocusing,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: CircularDurationSlider(
+                          width: sliderWidth,
+                          currentCheckSeconds: currentSeconds,
+                          totalSeconds: totalSeconds,
+                          isFocusing: isFocusing,
+                          themeState: themeState,
+                          onDurationChanged: onDurationChanged,
+                        ),
                       ),
-                      builder: (context, opacity, child) {
-                        return Opacity(
-                          opacity: opacity,
-                          child: IgnorePointer(
-                            ignoring: opacity < 0.1 || isFocusing,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: CircularDurationSlider(
-                        width: sliderWidth,
-                        currentCheckSeconds: currentSeconds,
-                        totalSeconds: totalSeconds,
-                        isFocusing: isFocusing,
-                        themeState: themeState,
-                        onDurationChanged: onDurationChanged,
-                      ),
-                    ),
                   ],
                 ),
               ),

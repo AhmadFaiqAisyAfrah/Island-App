@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui' as dart_ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -8,6 +10,8 @@ import '../../timer/domain/timer_logic.dart';
 import '../../focus_guide/data/quotes_repository.dart';
 
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/data/feature_discovery_provider.dart';
+import '../../../../core/widgets/glass_hint.dart';
 import 'distant_scenery.dart';
 import 'star_scatter.dart';
 
@@ -28,20 +32,70 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   // ... (Code omitted for brevity)
-  String _currentQuote = "Ready to focus?";
+  String _currentQuote = "Your quiet place."; 
+  Timer? _quoteRotationTimer;
+  DateTime? _pausedAt;
+  bool _showFocusHint = false;
 
   @override
   void initState() {
     super.initState();
-    _currentQuote = QuotesRepository.getRandomQuote();
+    WidgetsBinding.instance.addObserver(this);
+    // Initial Headline
+    _currentQuote = QuotesRepository.getDashboardHeadline();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final discovery = ref.read(featureDiscoveryProvider);
+      if (!discovery.hasSeenFocusHint) {
+        setState(() => _showFocusHint = true);
+        ref.read(featureDiscoveryProvider.notifier).markFocusHintSeen();
+      }
+    });
   }
 
-  void _updateQuote() {
-    setState(() {
-      _currentQuote = QuotesRepository.getRandomQuote();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+      _quoteRotationTimer?.cancel(); // Pause rotation
+    } else if (state == AppLifecycleState.resumed) {
+      _resumeCopyRotation();
+    }
+  }
+
+  void _resumeCopyRotation() {
+    final now = DateTime.now();
+    // Rotate Header if idle > 30 mins
+    if (_pausedAt != null && now.difference(_pausedAt!).inMinutes > 30) {
+      final timerState = ref.read(timerProvider);
+      if (timerState.status != TimerStatus.running) {
+        setState(() => _currentQuote = QuotesRepository.getDashboardHeadline());
+      }
+    }
+    
+    // Resume Timer if focusing
+    final timerState = ref.read(timerProvider);
+    if (timerState.status == TimerStatus.running) {
+      _startFocusRotation();
+    }
+  }
+
+  void _startFocusRotation() {
+    _quoteRotationTimer?.cancel();
+    // Rotate every 6 minutes (360s)
+    _quoteRotationTimer = Timer.periodic(const Duration(minutes: 6), (_) {
+      final timerState = ref.read(timerProvider);
+      if (mounted && timerState.status == TimerStatus.running) {
+         setState(() => _currentQuote = QuotesRepository.getFocusQuote());
+      }
     });
+  }
+
+  void _stopFocusRotation() {
+    _quoteRotationTimer?.cancel();
+    _quoteRotationTimer = null;
   }
 
   String _formatTime(int seconds) {
@@ -59,8 +113,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isNight = themeState.mode == AppThemeMode.night;
     final bgColors = _getBackgroundColors(themeState);
 
-    // Listen for completion
+    // Listen for completion & state changes
     ref.listen(timerProvider, (previous, next) {
+      // START FOCUS
+       if (next.status == TimerStatus.running && (previous?.status != TimerStatus.running)) {
+         setState(() {
+           _currentQuote = QuotesRepository.getFocusQuote();
+           _startFocusRotation();
+           _showFocusHint = false;
+         });
+      }
+      // STOP/PAUSE FOCUS
+      else if (previous?.status == TimerStatus.running && next.status != TimerStatus.running) {
+         _stopFocusRotation();
+         if (next.status == TimerStatus.idle) {
+            setState(() => _currentQuote = QuotesRepository.getDashboardHeadline());
+         }
+      }
+
       if (next.status == TimerStatus.completed) {
         // Calculate Reward (1 Coin per minute)
         final int minutesFocused = next.initialDuration ~/ 60;
@@ -247,13 +317,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: AnimatedSwitcher(
                           duration: const Duration(seconds: 1),
                           child: isFocusing 
-                            ? Container(
-                                key: ValueKey(_currentQuote),
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(30),
+                                child: BackdropFilter(
+                                  filter: dart_ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                  child: Container(
+                                    key: ValueKey(_currentQuote),
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), // Slightly more breathing room
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(isNight ? 0.08 : 0.4), // Lower than buttons (0.15/0.65)
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(isNight ? 0.1 : 0.3),
+                                        width: 1.0,
+                                      ),
+                                    ),
                               /* 
                                * QUOTE / TAGLINE 
                                * Rules: White text, specific opacity, calm typography
@@ -269,13 +347,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     shadows: AppTextStyles.softShadow, // Subtle reinforcement
                                   ),
                                 ),
-                              )
+                              ),
+                            ),
+                            ) // Close ClipRRect
                             : Column(
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.only(top: 16.0),
                                     child: Text( 
-                                      "Your quiet place.",
+                                      _currentQuote, // Use dynamic quote even for headline
+                                      key: ValueKey(_currentQuote),
                                       style: AppTextStyles.subHeading.copyWith(
                                         color: Colors.white.withOpacity(0.85), // Slightly boosted
                                         letterSpacing: 1.2, 
@@ -346,7 +427,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: [
                             // TAG SELECTOR (Intention) - Fades out when focusing
                             TagSelector(isFocusing: isFocusing),
-                            const SizedBox(height: 32), // More breathing room
+                            if (!isFocusing && _showFocusHint) ...[
+                              const SizedBox(height: 16),
+                              GlassHint(
+                                text: 'Set your time. Let the island breathe with you.',
+                                isNight: isNight,
+                                onDismiss: () => setState(() => _showFocusHint = false),
+                              ),
+                              const SizedBox(height: 20),
+                            ] else
+                              const SizedBox(height: 32),
 
                             // Timer Text
                             // Ensure center alignment for font quirks
@@ -388,7 +478,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             // AUDIO FROZEN FOR MVP
                                             // ref.read(audioServiceProvider).disable();
                                           } else {
-                                            _updateQuote(); 
                                             ref.read(timerProvider.notifier).start();
                                             // AUDIO FROZEN FOR MVP
                                             // if (ref.read(audioEnabledProvider)) {
@@ -549,21 +638,21 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
 
   Color _getButtonBaseColor() {
     if (widget.isFocusing) {
-       return Colors.white.withOpacity(0.2); // Translucent when active
+       return Colors.white.withOpacity(0.15); // Translucent when active
     }
     
     final isNight = widget.themeState.mode == AppThemeMode.night;
-    // Muted Green Glass Palette
+    // Unified Glass Material (White-based)
     if (isNight) {
-       return const Color(0xFF4A5D45).withOpacity(0.6); // Darker muted green
+       return Colors.white.withOpacity(0.12); // Slightly more visible for contrast
     } else {
-       // Day: Soft Sage Green, slightly distinct from background but calm
-       return const Color(0xFF9FB5AB).withOpacity(0.65); 
+       return Colors.white.withOpacity(0.25); // Airy, light glass
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // ... logic ...
     return GestureDetector(
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
@@ -577,25 +666,32 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
              child: child,
            );
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 500), 
-          width: widget.isFocusing ? 140 : 200,
-          height: 68,
-            decoration: BoxDecoration(
-              color: _getButtonBaseColor(),
-              borderRadius: BorderRadius.circular(34),
-              // Shared Material Features:
-              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.0), 
-              boxShadow: widget.isFocusing ? [] : [
-                 BoxShadow(
-                   color: Colors.black.withOpacity(0.05), // Unified soft shadow
-                   blurRadius: 10, 
-                   offset: const Offset(0, 4), 
-                 )
-              ],
-            ),
-          alignment: Alignment.center,
-          child: AnimatedSwitcher(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(34),
+          child: BackdropFilter(
+            filter: dart_ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 500), 
+              width: widget.isFocusing ? 140 : 200,
+              height: 68,
+                decoration: BoxDecoration(
+                  color: _getButtonBaseColor(),
+                  borderRadius: BorderRadius.circular(34), // Required for border alignment
+                  // Shared Material Features:
+                  border: Border.all(
+                    color: Colors.white.withOpacity(widget.isFocusing ? 0.2 : 0.4), 
+                    width: 1.0
+                  ), 
+                  boxShadow: widget.isFocusing ? [] : [
+                     BoxShadow(
+                       color: Colors.black.withOpacity(0.03), // Extremely subtle shadow
+                       blurRadius: 10, 
+                       offset: const Offset(0, 4), 
+                     )
+                  ],
+                ),
+              alignment: Alignment.center,
+              child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: Text(
               widget.isFocusing ? "Stop" : "Begin Focus",
@@ -607,9 +703,11 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
                 letterSpacing: 0.5,
               ),
             ),
+            ),
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

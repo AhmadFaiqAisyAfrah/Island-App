@@ -1,0 +1,701 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/data/shared_preferences_provider.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../home/presentation/home_screen.dart';
+import '../data/onboarding_storage.dart';
+
+class OnboardingScreen extends ConsumerStatefulWidget {
+  const OnboardingScreen({super.key});
+
+  @override
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  late final PageController _pageController;
+  int _pageIndex = 0;
+
+  final List<_OnboardingSlide> _slides = const [
+    _OnboardingSlide(
+      eyebrow: 'A quiet start',
+      title: 'Meet your calm island',
+      subtitle: 'Set a focus length and watch the island breathe with your time.',
+      gradient: [
+        CalmPalette.skyTop,
+        CalmPalette.skyMist,
+        CalmPalette.deepWater,
+      ],
+      accent: AppColors.islandGrass,
+      glow: AppColors.skyBottom,
+      artwork: _ArtworkType.island,
+    ),
+    _OnboardingSlide(
+      eyebrow: 'Intention first',
+      title: 'Name your focus',
+      subtitle: 'Choose a gentle tag before you begin. Small rituals make a big difference.',
+      gradient: [
+        Color(0xFFF3E6D7),
+        Color(0xFFDCE6EA),
+        Color(0xFFBFD3DA),
+      ],
+      accent: Color(0xFF8DAA91),
+      glow: Color(0xFFF1D2B3),
+      artwork: _ArtworkType.lantern,
+    ),
+    _OnboardingSlide(
+      eyebrow: 'Soft momentum',
+      title: 'Track the tide',
+      subtitle: 'Every session becomes part of your Archipelago, a calm record of effort.',
+      gradient: [
+        CalmPalette.autumnSky,
+        CalmPalette.autumnMist,
+        CalmPalette.autumnGround,
+      ],
+      accent: CalmPalette.autumnLeafLight,
+      glow: Color(0xFFFFF1DD),
+      artwork: _ArtworkType.archipelago,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  bool get _isLastPage => _pageIndex == _slides.length - 1;
+
+  void _goNext() {
+    if (_isLastPage) {
+      _completeOnboarding();
+      return;
+    }
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _goBack() {
+    if (_pageIndex == 0) return;
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _completeOnboarding() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final storage = OnboardingStorage(prefs);
+    await storage.setComplete();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(_fadeRoute(const HomeScreen()));
+  }
+
+  PageRouteBuilder<void> _fadeRoute(Widget page) {
+    return PageRouteBuilder<void>(
+      pageBuilder: (_, animation, __) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 700),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentSlide = _slides[_pageIndex];
+    final media = MediaQuery.of(context);
+    final contentHeight = media.size.height - media.padding.vertical;
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: currentSlide.gradient,
+              ),
+            ),
+          ),
+          Positioned(
+            top: -140,
+            left: -120,
+            child: _SoftOrb(color: currentSlide.glow, size: 260),
+          ),
+          Positioned(
+            bottom: -160,
+            right: -100,
+            child: _SoftOrb(color: currentSlide.accent, size: 300),
+          ),
+          const Positioned.fill(child: _DustLayer()),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: _pageIndex > 0
+                            ? TextButton(
+                                key: const ValueKey('back'),
+                                onPressed: _goBack,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.textMain.withOpacity(0.7),
+                                ),
+                                child: const Text('Back'),
+                              )
+                            : const SizedBox(width: 64, key: ValueKey('spacer')),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _completeOnboarding,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textMain.withOpacity(0.7),
+                        ),
+                        child: const Text('Skip'),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: contentHeight * 0.68,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: _slides.length,
+                    onPageChanged: (index) => setState(() => _pageIndex = index),
+                    itemBuilder: (context, index) {
+                      return _OnboardingPage(
+                        slide: _slides[index],
+                        key: ValueKey(_slides[index].title),
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ProgressDots(
+                        total: _slides.length,
+                        currentIndex: _pageIndex,
+                        activeColor: currentSlide.accent,
+                      ),
+                      const SizedBox(height: 16),
+                      _PrimaryButton(
+                        label: _isLastPage ? 'Enter Island' : 'Next',
+                        accent: currentSlide.accent,
+                        onTap: _goNext,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _isLastPage ? 'Your calm space is ready.' : 'Swipe to explore the flow.',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSub,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingPage extends StatelessWidget {
+  final _OnboardingSlide slide;
+
+  const _OnboardingPage({super.key, required this.slide});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = math.min(constraints.maxWidth, 420.0);
+        final artworkSize = math.min(maxWidth * 0.78, 320.0);
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 8),
+                  _AnimatedReveal(
+                    child: _OnboardingArtwork(
+                      slide: slide,
+                      size: artworkSize,
+                      key: ValueKey('${slide.title}-art'),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  _AnimatedReveal(
+                    delay: const Duration(milliseconds: 80),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                      child: Text(
+                        slide.eyebrow,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          letterSpacing: 1.2,
+                          color: AppColors.textMain.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _AnimatedReveal(
+                    delay: const Duration(milliseconds: 140),
+                    child: Text(
+                      slide.title,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.heading.copyWith(
+                        fontSize: 30,
+                        height: 1.1,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _AnimatedReveal(
+                    delay: const Duration(milliseconds: 220),
+                    child: Text(
+                      slide.subtitle,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textMain.withOpacity(0.8),
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedReveal extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+
+  const _AnimatedReveal({required this.child, this.delay = Duration.zero});
+
+  @override
+  State<_AnimatedReveal> createState() => _AnimatedRevealState();
+}
+
+class _AnimatedRevealState extends State<_AnimatedReveal> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<double> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _offset = Tween<double>(begin: 16, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.translate(
+            offset: Offset(0, _offset.value),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _OnboardingArtwork extends StatelessWidget {
+  final _OnboardingSlide slide;
+  final double size;
+
+  const _OnboardingArtwork({super.key, required this.slide, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value,
+            child: Transform.translate(
+              offset: Offset(0, (1 - value) * 16),
+              child: child,
+            ),
+          );
+        },
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            _SoftOrb(color: slide.glow, size: size * 0.9),
+            Container(
+              width: size * 0.72,
+              height: size * 0.72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.2),
+                  ],
+                ),
+              ),
+            ),
+            CustomPaint(
+              size: Size(size * 0.62, size * 0.62),
+              painter: _ArtworkPainter(
+                type: slide.artwork,
+                accent: slide.accent,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtworkPainter extends CustomPainter {
+  final _ArtworkType type;
+  final Color accent;
+
+  _ArtworkPainter({required this.type, required this.accent});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    switch (type) {
+      case _ArtworkType.island:
+        _paintIsland(canvas, size);
+        break;
+      case _ArtworkType.lantern:
+        _paintLantern(canvas, size);
+        break;
+      case _ArtworkType.archipelago:
+        _paintArchipelago(canvas, size);
+        break;
+    }
+  }
+
+  void _paintIsland(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final baseRect = Rect.fromCenter(
+      center: Offset(w * 0.5, h * 0.62),
+      width: w * 0.78,
+      height: h * 0.38,
+    );
+    paint.shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        accent.withOpacity(0.9),
+        AppColors.islandCliff.withOpacity(0.9),
+      ],
+    ).createShader(baseRect);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(baseRect, Radius.circular(w * 0.3)),
+      paint,
+    );
+
+    paint.shader = null;
+    paint.color = AppColors.skyBottom.withOpacity(0.8);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, h * 0.52),
+        width: w * 0.62,
+        height: h * 0.18,
+      ),
+      paint,
+    );
+
+    paint.color = AppColors.islandBeige.withOpacity(0.9);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(w * 0.62, h * 0.42),
+          width: w * 0.14,
+          height: h * 0.14,
+        ),
+        Radius.circular(w * 0.04),
+      ),
+      paint,
+    );
+
+    paint.color = AppColors.islandCliff.withOpacity(0.9);
+    final roofPath = Path()
+      ..moveTo(w * 0.56, h * 0.36)
+      ..lineTo(w * 0.62, h * 0.28)
+      ..lineTo(w * 0.68, h * 0.36)
+      ..close();
+    canvas.drawPath(roofPath, paint);
+  }
+
+  void _paintLantern(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    paint.color = AppColors.textMain.withOpacity(0.7);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(w * 0.5, h * 0.6),
+          width: w * 0.08,
+          height: h * 0.46,
+        ),
+        Radius.circular(w * 0.05),
+      ),
+      paint,
+    );
+
+    paint.color = accent.withOpacity(0.9);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, h * 0.35),
+        width: w * 0.34,
+        height: h * 0.28,
+      ),
+      paint,
+    );
+
+    paint.color = Colors.white.withOpacity(0.9);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.35), w * 0.08, paint);
+  }
+
+  void _paintArchipelago(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    paint.color = accent.withOpacity(0.85);
+    canvas.drawCircle(Offset(w * 0.3, h * 0.55), w * 0.13, paint);
+    canvas.drawCircle(Offset(w * 0.6, h * 0.45), w * 0.16, paint);
+    canvas.drawCircle(Offset(w * 0.7, h * 0.68), w * 0.1, paint);
+
+    paint.color = AppColors.skyBottom.withOpacity(0.9);
+    final wavePath = Path()
+      ..moveTo(w * 0.18, h * 0.72)
+      ..quadraticBezierTo(w * 0.4, h * 0.78, w * 0.62, h * 0.7)
+      ..quadraticBezierTo(w * 0.8, h * 0.64, w * 0.88, h * 0.72);
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = h * 0.04;
+    paint.strokeCap = StrokeCap.round;
+    canvas.drawPath(wavePath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArtworkPainter oldDelegate) {
+    return oldDelegate.type != type || oldDelegate.accent != accent;
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _PrimaryButton({required this.label, required this.accent, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        ).copyWith(
+          overlayColor: MaterialStateProperty.all(Colors.white.withOpacity(0.1)),
+          shadowColor: MaterialStateProperty.all(accent.withOpacity(0.3)),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.subHeading.copyWith(
+            color: Colors.white,
+            fontSize: 18,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressDots extends StatelessWidget {
+  final int total;
+  final int currentIndex;
+  final Color activeColor;
+
+  const _ProgressDots({
+    required this.total,
+    required this.currentIndex,
+    required this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(total, (index) {
+        final isActive = index == currentIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: isActive ? 22 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: isActive ? activeColor : Colors.white.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _SoftOrb extends StatelessWidget {
+  final Color color;
+  final double size;
+
+  const _SoftOrb({required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withOpacity(0.45), color.withOpacity(0.0)],
+        ),
+      ),
+    );
+  }
+}
+
+class _DustLayer extends StatelessWidget {
+  const _DustLayer();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DustPainter(),
+    );
+  }
+}
+
+class _DustPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(12);
+    final paint = Paint();
+    final w = size.width;
+    final h = size.height;
+    for (int i = 0; i < 450; i++) {
+      paint.color = Colors.white.withOpacity(random.nextDouble() * 0.05);
+      canvas.drawCircle(
+        Offset(random.nextDouble() * w, random.nextDouble() * h),
+        random.nextDouble() * 1.2,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DustPainter oldDelegate) => false;
+}
+
+class _OnboardingSlide {
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+  final List<Color> gradient;
+  final Color accent;
+  final Color glow;
+  final _ArtworkType artwork;
+
+  const _OnboardingSlide({
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+    required this.gradient,
+    required this.accent,
+    required this.glow,
+    required this.artwork,
+  });
+}
+
+enum _ArtworkType { island, lantern, archipelago }

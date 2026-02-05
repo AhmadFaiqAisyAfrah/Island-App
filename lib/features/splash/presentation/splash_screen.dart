@@ -1,33 +1,39 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../island/presentation/layers/island_base_layer.dart';
 import '../../home/presentation/home_screen.dart';
+import '../../onboarding/data/onboarding_storage.dart';
+import '../../onboarding/presentation/onboarding_screen.dart';
+import '../../../core/data/shared_preferences_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
     // 1.5s Fixed Duration (Calm Breath)
     Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              // Gentle Fade Transition
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 800), // Slow fade
-          ),
-        );
-      }
+      if (!mounted) return;
+      final prefs = ref.read(sharedPreferencesProvider);
+      final storage = OnboardingStorage(prefs);
+      final nextScreen = storage.hasSeenOnboarding ? const HomeScreen() : const OnboardingScreen();
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            // Gentle Fade Transition
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 800), // Slow fade
+        ),
+      );
     });
   }
 

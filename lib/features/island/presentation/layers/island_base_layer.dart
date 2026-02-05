@@ -22,13 +22,18 @@ class CalmPalette {
   static const Color lightWarm = Color(0xFFFFE082);      // Soft Amber/Yellow Glow (Low Intensity)
 
   // Nature
-  static const Color grassBase = Color(0xFF8DA399); // Sage Green
-  static const Color grassHighlight = Color(0xFF9FB5AB); // Restored
+  // Nature
+  // Day Mode (Fresh)
+  static const Color grassBase = Color(0xFFA7C995); // Fresh Sage (Vibrant)
+  static const Color grassHighlight = Color(0xFFC4DBC2); // Soft highlight
+  static const Color cliffTop = Color(0xFF8D7F75);  // Warm Taupe
+  static const Color cliffBottom = Color(0xFF7A6C62); // Darker Clay
   
-  // Cliff now has a gradient, these are the stops
-  static const Color cliffTop = Color(0xFF645C5E);  // Darker Warm Grey (~8% darker)
-  static const Color cliffBottom = Color(0xFF5A5254); // Darker Grey (Solid Gradient)
-  static const Color cliffShadow = Color(0xFF585052); // Restored
+  // Night Mode (Physically Adapted: Dimmed + Desaturated + Cool Tint + Warm Bias)
+  static const Color nightGrassBase = Color(0xFF909A85); // Muted Sage (Warmer)
+  static const Color nightCliffTop = Color(0xFF7F726B);  // Muted Taupe (Warmer)
+  static const Color nightCliffBottom = Color(0xFF695E58); // Muted Clay (Warmer)
+  static const Color cliffShadow = Color(0xFF585052); // Keep for props
   
   // ... (Other colors unchanged) 
   static const Color sandBase = Color(0xFFE0D8CC);  
@@ -36,6 +41,15 @@ class CalmPalette {
   static const Color houseWall = Color(0xFFD7CCC8); 
   static const Color houseRoof = Color(0xFF8D6E63); 
   static const Color houseDoor = Color(0xFF8D6E63); 
+  
+  // House (Night) - Dimmed ~15% + Cool Tint + Warm Bias
+  static const Color nightHouseWall = Color(0xFFC0AAA4); // Dimmed Mauve/Beige (Warmer)
+  static const Color nightHouseRoof = Color(0xFF70544C); // Darker Brown (Warmer)
+  static const Color nightHouseDoor = Color(0xFF70544C); // Darker Brown (Warmer)
+
+  // Nature Details (Night)
+  static const Color nightFoliage = Color(0xFF909A85); // Matches nightGrassBase
+  static const Color nightFoliageSakura = Color(0xFFCDB1B1); // Dimmed Pink 
   
   static const Color charSkin = Color(0xFFFFCCBC); 
   static const Color charCloth = Color(0xFF5D4037); 
@@ -63,12 +77,14 @@ class IslandBaseLayer extends StatefulWidget {
   final bool isFocusing; // ACTION
   final ThemeState themeState; // WORLD STATE (Mode + Season)
   final double width;
+  final bool enableCharacterIdleMotion;
 
   const IslandBaseLayer({
     super.key,
     required this.isFocusing,
     required this.themeState,
     required this.width,
+    this.enableCharacterIdleMotion = false,
   });
 
   @override
@@ -80,6 +96,8 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
   late AnimationController _patrolController;
   late AnimationController _walkCycleController;
   late AnimationController _petalController; 
+  late AnimationController _idleController;
+  late Animation<double> _idleCurve;
   
   Timer? _behaviorTimer;
   Timer? _petalTimer;
@@ -103,10 +121,18 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
       duration: const Duration(seconds: 4), 
     );
 
+    _idleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    );
+    _idleCurve = CurvedAnimation(parent: _idleController, curve: Curves.easeInOut);
+
     if (widget.isFocusing) {
       _startAnimations(); 
       _checkPetalStart(); 
     }
+
+    _updateIdleMotion();
   }
 
   @override
@@ -121,8 +147,24 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
         _stopPetalLoop();
       }
     }
+    if (widget.enableCharacterIdleMotion != oldWidget.enableCharacterIdleMotion ||
+        widget.isFocusing != oldWidget.isFocusing) {
+      _updateIdleMotion();
+    }
     if (widget.isFocusing && widget.themeState.season != oldWidget.themeState.season) {
       _checkPetalStart(); 
+    }
+  }
+
+  void _updateIdleMotion() {
+    final shouldIdle = widget.enableCharacterIdleMotion && !widget.isFocusing;
+    if (shouldIdle) {
+      if (!_idleController.isAnimating) {
+        _idleController.repeat(reverse: true);
+      }
+    } else {
+      _idleController.stop();
+      _idleController.reset();
     }
   }
   
@@ -196,6 +238,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     _patrolController.dispose();
     _walkCycleController.dispose();
     _petalController.dispose();
+    _idleController.dispose();
     super.dispose();
   }
 
@@ -278,6 +321,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
               isSakura: isSakura,
               isAutumn: isAutumn,
               isWinter: isWinter,
+              isNight: isNight,
             ), 
           ),
 
@@ -285,7 +329,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
           Positioned(
              bottom: w * 0.49,
              right: w * 0.28, // Near tree
-             child: CalmGardenLamp(size: w * 0.08, lightIntensity: lightIntensity),
+             child: CalmGardenLamp(size: w * 0.08, lightIntensity: lightIntensity, isNight: isNight),
           ),
 
           // 3. TREES (Sakura or Green)
@@ -299,6 +343,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                isSakura: isSakura,
                isAutumn: isAutumn,
                isWinter: isWinter,
+               isNight: isNight,
              ),
           ),
           Positioned(
@@ -311,39 +356,54 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                isSakura: isSakura,
                isAutumn: isAutumn,
                isWinter: isWinter,
+               isNight: isNight,
              ),
           ),
 
           // 4. CHARACTER
-          AnimatedBuilder(
-            animation: Listenable.merge([_patrolController, _walkCycleController]),
-            builder: (context, child) {
-              final t = _patrolController.value;
-              final minX = w * 0.35;
-              final maxX = w * 0.60;
-              final currentLeft = minX + ((maxX - minX) * t); 
-              
-              final isMovingRight = _patrolController.status == AnimationStatus.forward;
-              final walkVal = _walkCycleController.value;
-              final useSideView = _isCharacterWalking; 
-              
-              final bob = useSideView 
-                  ? -2.0 * math.sin(walkVal * math.pi * 2).abs() 
-                  : 0.0;
+           AnimatedBuilder(
+             animation: Listenable.merge([
+               _patrolController,
+               _walkCycleController,
+               _idleController,
+             ]),
+             builder: (context, child) {
+               final bool useIdleMotion = widget.enableCharacterIdleMotion && !widget.isFocusing;
+               final t = _patrolController.value;
+               final minX = w * 0.35;
+               final maxX = w * 0.60;
+               final walkLeft = minX + ((maxX - minX) * t);
+               final idleT = _idleCurve.value * math.pi * 2;
+               final idleX = useIdleMotion ? math.sin(idleT) * (w * 0.012) : 0.0;
+               final idleY = useIdleMotion ? math.cos(idleT * 2) * (w * 0.004) : 0.0;
+               final idleScale = useIdleMotion ? 1.0075 + (math.sin(idleT) * 0.0075) : 1.0;
+               final baseLeft = useIdleMotion ? w * 0.48 : walkLeft;
+               final currentLeft = baseLeft + idleX;
 
-              return Positioned(
-                bottom: (w * 0.48) + bob, 
-                left: currentLeft,
-                child: CalmCharacterWidget(
-                  isFocusing: widget.isFocusing, 
-                  walkProgress: walkVal,
-                  isFacingLeft: !isMovingRight,
-                  size: w * 0.09, 
-                  isWalking: useSideView,
-                ),
-              );
-            }
-          ),
+               final isMovingRight = _patrolController.status == AnimationStatus.forward;
+               final walkVal = _walkCycleController.value;
+               final useSideView = useIdleMotion ? false : _isCharacterWalking; 
+               
+               final bob = useSideView
+                   ? -2.0 * math.sin(walkVal * math.pi * 2).abs()
+                   : 0.0;
+
+               return Positioned(
+                 bottom: (w * 0.48) + bob + idleY,
+                 left: currentLeft,
+                 child: Transform.scale(
+                   scale: idleScale,
+                   child: CalmCharacterWidget(
+                     isFocusing: widget.isFocusing, 
+                     walkProgress: walkVal,
+                     isFacingLeft: !isMovingRight,
+                     size: w * 0.09, 
+                     isWalking: useSideView,
+                   ),
+                 ),
+               );
+             }
+           ),
 
           // 5. SAKURA PETALS (Overlay - Only triggered once)
           // Drawn on top of everything
@@ -393,13 +453,18 @@ class CalmIslandPainter extends CustomPainter {
     cliffPath.close();
     
     // Gradient: Top (Color) -> Bottom (Water)
+    // Gradient: Top (Color) -> Bottom (Water)
+    // Select colors based on mode
+    final topColor = isNight ? CalmPalette.nightCliffTop : CalmPalette.cliffTop;
+    final botColor = isNight ? CalmPalette.nightCliffBottom : CalmPalette.cliffBottom;
+
     final cliffPaint = Paint()
       ..shader = LinearGradient(
          begin: Alignment.topCenter,
          end: Alignment.bottomCenter,
          colors: [
-           CalmPalette.cliffTop,
-           CalmPalette.cliffBottom, // Blends into water
+           topColor,
+           botColor, 
          ],
          stops: [0.3, 1.0]
       ).createShader(Rect.fromLTWH(0, 0, w, h));
@@ -410,8 +475,8 @@ class CalmIslandPainter extends CustomPainter {
     // Grounds the island in the dark water
     if (isNight && !isWinter) {
       final shadowPaint = Paint()
-        ..color = Colors.black.withOpacity(0.3)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+        ..color = Colors.black.withOpacity(0.2)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25);
       
       canvas.drawOval(
         Rect.fromCenter(center: Offset(w * 0.5, h * 0.85), width: w * 0.8, height: h * 0.15),
@@ -425,7 +490,12 @@ class CalmIslandPainter extends CustomPainter {
     grassPath.cubicTo(w*0.3, h*0.1, w*0.7, h*0.1, w*1.05, h*0.35);
     grassPath.quadraticBezierTo(w*0.5, h*0.55, -w*0.05, h*0.35);
     grassPath.quadraticBezierTo(w*0.5, h*0.55, -w*0.05, h*0.35);
-    canvas.drawPath(grassPath, Paint()..color = isAutumn ? CalmPalette.autumnGround : CalmPalette.grassBase);
+    
+    Color grassColor = CalmPalette.grassBase;
+    if (isNight) grassColor = CalmPalette.nightGrassBase;
+    if (isAutumn) grassColor = CalmPalette.autumnGround;
+
+    canvas.drawPath(grassPath, Paint()..color = grassColor);
 
     // 3. SAKURA GROUND PETALS (Static)
     // Increased density and natural range
@@ -487,6 +557,7 @@ class CalmHouseWidget extends StatelessWidget {
   final bool isSakura;
   final bool isAutumn;
   final bool isWinter;
+  final bool isNight;
   
   const CalmHouseWidget({
     super.key, 
@@ -495,6 +566,7 @@ class CalmHouseWidget extends StatelessWidget {
     this.isSakura = false,
     this.isAutumn = false,
     this.isWinter = false,
+    required this.isNight,
   });
   
   @override
@@ -515,6 +587,7 @@ class CalmHouseWidget extends StatelessWidget {
               isSakura: isSakura,
               isAutumn: isAutumn,
               isWinter: isWinter,
+              isNight: isNight,
             )
           );
         }
@@ -528,8 +601,9 @@ class _CalmHousePainter extends CustomPainter {
   final bool isSakura;
   final bool isAutumn;
   final bool isWinter;
+  final bool isNight;
   
-  _CalmHousePainter({required this.lightOpacity, required this.isSakura, required this.isAutumn, required this.isWinter});
+  _CalmHousePainter({required this.lightOpacity, required this.isSakura, required this.isAutumn, required this.isWinter, required this.isNight});
   
   @override
   void paint(Canvas canvas, Size size) {
@@ -538,7 +612,7 @@ class _CalmHousePainter extends CustomPainter {
     final paint = Paint()..style = PaintingStyle.fill;
     
     // Main Block
-    paint.color = CalmPalette.houseWall;
+    paint.color = isNight ? CalmPalette.nightHouseWall : CalmPalette.houseWall;
     final wallRect = Rect.fromLTWH(w * 0.1, h * 0.4, w * 0.8, h * 0.6);
     canvas.drawRRect(RRect.fromRectAndRadius(wallRect, const Radius.circular(4)), paint);
     
@@ -547,11 +621,11 @@ class _CalmHousePainter extends CustomPainter {
     roofPath.moveTo(-w*0.05, h * 0.45);
     roofPath.quadraticBezierTo(w * 0.5, h * 0.1, w * 1.05, h * 0.45);
     roofPath.close();
-    paint.color = CalmPalette.houseRoof;
+    paint.color = isNight ? CalmPalette.nightHouseRoof : CalmPalette.houseRoof;
     canvas.drawPath(roofPath, paint);
     
     // Door
-    paint.color = CalmPalette.houseDoor.withOpacity(0.8);
+    paint.color = (isNight ? CalmPalette.nightHouseDoor : CalmPalette.houseDoor).withOpacity(0.8);
     canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.45, h * 0.65, w * 0.15, h * 0.35), const Radius.circular(2)), paint);
     
     // Door Light (Bottom)
@@ -612,11 +686,13 @@ class _CalmHousePainter extends CustomPainter {
     }
   }
   @override
-  bool shouldRepaint(covariant _CalmHousePainter oldDelegate) => 
-    lightOpacity != oldDelegate.lightOpacity || 
-    isSakura != oldDelegate.isSakura || 
-    isAutumn != oldDelegate.isAutumn || 
-    isWinter != oldDelegate.isWinter;
+  bool shouldRepaint(covariant _CalmHousePainter oldDelegate) {
+    return lightOpacity != oldDelegate.lightOpacity || 
+           isSakura != oldDelegate.isSakura || 
+           isAutumn != oldDelegate.isAutumn || 
+           isWinter != oldDelegate.isWinter ||
+           isNight != oldDelegate.isNight;
+  }
 }
 
 // 2.5 GARDEN LAMP
@@ -624,7 +700,9 @@ class CalmGardenLamp extends StatelessWidget {
   final double size;
   final double lightIntensity;
   
-  const CalmGardenLamp({super.key, required this.size, required this.lightIntensity});
+  final bool isNight;
+  
+  const CalmGardenLamp({super.key, required this.size, required this.lightIntensity, required this.isNight});
   
   @override
   Widget build(BuildContext context) {
@@ -634,7 +712,7 @@ class CalmGardenLamp extends StatelessWidget {
       builder: (context, opacity, child) {
          return CustomPaint(
            size: Size(size, size * 2), // Tall thin lamp
-           painter: _CalmGardenLampPainter(lightOpacity: opacity)
+           painter: _CalmGardenLampPainter(lightOpacity: opacity, isNight: isNight)
          );
       }
     );
@@ -643,7 +721,8 @@ class CalmGardenLamp extends StatelessWidget {
 
 class _CalmGardenLampPainter extends CustomPainter {
   final double lightOpacity;
-  const _CalmGardenLampPainter({required this.lightOpacity});
+  final bool isNight;
+  const _CalmGardenLampPainter({required this.lightOpacity, required this.isNight});
   
   @override 
   void paint(Canvas canvas, Size size) {
@@ -656,7 +735,7 @@ class _CalmGardenLampPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTWH(w * 0.4, h * 0.2, w * 0.2, h * 0.8), paint);
     
     // Lamp Head
-    paint.color = CalmPalette.houseRoof;
+    paint.color = isNight ? CalmPalette.nightHouseRoof : CalmPalette.houseRoof;
     canvas.drawOval(Rect.fromLTWH(w * 0.2, h * 0.1, w * 0.6, h * 0.2), paint);
     
     // Light Source (Only when Opacity > 0)
@@ -678,7 +757,9 @@ class _CalmGardenLampPainter extends CustomPainter {
     }
   }
   @override
-  bool shouldRepaint(covariant _CalmGardenLampPainter oldDelegate) => lightOpacity != oldDelegate.lightOpacity;
+  bool shouldRepaint(covariant _CalmGardenLampPainter oldDelegate) {
+    return lightOpacity != oldDelegate.lightOpacity || isNight != oldDelegate.isNight;
+  }
 }
 
 class CalmTreeWidget extends StatefulWidget {
@@ -687,6 +768,7 @@ class CalmTreeWidget extends StatefulWidget {
   final bool isSakura;
   final bool isAutumn;
   final bool isWinter;
+  final bool isNight;
   final int delay;
   const CalmTreeWidget({
     super.key, 
@@ -695,7 +777,8 @@ class CalmTreeWidget extends StatefulWidget {
     this.isSakura = false,
     this.isAutumn = false,
     this.isWinter = false,
-    this.delay = 0
+    this.delay = 0,
+    required this.isNight,
   });
   @override
   State<CalmTreeWidget> createState() => _CalmTreeWidgetState();
@@ -740,6 +823,7 @@ class _CalmTreeWidgetState extends State<CalmTreeWidget> with SingleTickerProvid
             isSakura: widget.isSakura,
             isAutumn: widget.isAutumn,
             isWinter: widget.isWinter,
+            isNight: widget.isNight,
           )
         );
       }
@@ -752,17 +836,20 @@ class _CalmTreePainter extends CustomPainter {
   final bool isSakura;
   final bool isAutumn;
   final bool isWinter;
+  final bool isNight;
   
-  _CalmTreePainter({required this.swayValue, required this.isSakura, required this.isAutumn, required this.isWinter});
+  _CalmTreePainter({required this.swayValue, required this.isSakura, required this.isAutumn, required this.isWinter, required this.isNight});
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
     final trunkPaint = Paint()..color = CalmPalette.cliffShadow;
     Color foliageColor = CalmPalette.grassHighlight;
-    if (isSakura) foliageColor = CalmPalette.sakuraLight;
-    if (isAutumn) foliageColor = CalmPalette.autumnLeafLight;
-    if (isWinter) foliageColor = CalmPalette.pineGreen;
+    if (isNight) foliageColor = CalmPalette.nightFoliage;
+    
+    if (isSakura) foliageColor = isNight ? CalmPalette.nightFoliageSakura : CalmPalette.sakuraLight;
+    if (isAutumn) foliageColor = isNight ? CalmPalette.autumnLeafLight.withOpacity(0.7) : CalmPalette.autumnLeafLight; // Manual dim for Autumn
+    if (isWinter) foliageColor = isNight ? CalmPalette.pineGreen.withOpacity(0.8) : CalmPalette.pineGreen; // Manual dim for Winter
     
     final foliagePaint = Paint()..color = foliageColor;
 
@@ -785,7 +872,7 @@ class _CalmTreePainter extends CustomPainter {
     if (isSakura) {
       // SAKURA SHAPE: Soft Cloud
       // 3 overlapping circles for fluffiness
-      foliagePaint.color = CalmPalette.sakuraLight;
+      foliagePaint.color = isNight ? CalmPalette.nightFoliageSakura : CalmPalette.sakuraLight;
       canvas.drawCircle(Offset(0, -h * 0.2), w * 0.22, foliagePaint);
       canvas.drawCircle(Offset(-w * 0.15, -h * 0.15), w * 0.18, foliagePaint);
       canvas.drawCircle(Offset(w * 0.15, -h * 0.15), w * 0.18, foliagePaint);
@@ -798,7 +885,7 @@ class _CalmTreePainter extends CustomPainter {
       // AUTUMN SHAPE: Maple (Wider, Flatter)
       
       // Main Crown (Wide)
-      foliagePaint.color = CalmPalette.autumnLeafLight;
+      foliagePaint.color = isNight ? CalmPalette.autumnLeafLight.withOpacity(0.7) : CalmPalette.autumnLeafLight;
       canvas.drawOval(Rect.fromCenter(center: Offset(0, -h * 0.18), width: w * 0.55, height: w * 0.35), foliagePaint);
       
       // Top Bit
@@ -852,8 +939,13 @@ class _CalmTreePainter extends CustomPainter {
     canvas.restore();
   }
   @override
-  bool shouldRepaint(covariant _CalmTreePainter oldDelegate) => 
-    swayValue != oldDelegate.swayValue || isSakura != oldDelegate.isSakura || isAutumn != oldDelegate.isAutumn || isWinter != oldDelegate.isWinter;
+  bool shouldRepaint(covariant _CalmTreePainter oldDelegate) {
+    return swayValue != oldDelegate.swayValue || 
+           isSakura != oldDelegate.isSakura || 
+           isAutumn != oldDelegate.isAutumn || 
+           isWinter != oldDelegate.isWinter ||
+           isNight != oldDelegate.isNight;
+  }
 }
 
 class CalmCharacterWidget extends StatelessWidget {

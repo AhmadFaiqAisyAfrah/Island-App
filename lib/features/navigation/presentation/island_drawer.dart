@@ -3,6 +3,8 @@ import '../../../../core/theme/app_theme.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/data/feature_discovery_provider.dart';
+import '../../../../core/widgets/glass_hint.dart';
 import '../../shop/presentation/shop_screen.dart';
 import '../../archipelago/presentation/archipelago_screen.dart';
 import '../../../../services/auth_service.dart';
@@ -88,11 +90,30 @@ class IslandDrawer extends ConsumerWidget {
   }
 }
 
-class ThemeSelectorDialog extends ConsumerWidget {
+class ThemeSelectorDialog extends ConsumerStatefulWidget {
   const ThemeSelectorDialog({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ThemeSelectorDialog> createState() => _ThemeSelectorDialogState();
+}
+
+class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
+  bool _showThemeHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final discovery = ref.read(featureDiscoveryProvider);
+      if (!discovery.hasSeenThemeHint) {
+        setState(() => _showThemeHint = true);
+        ref.read(featureDiscoveryProvider.notifier).markThemeHintSeen();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(themeProvider);
     
     // Define Theme Data (UI Presentation)
@@ -161,6 +182,13 @@ class ThemeSelectorDialog extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_showThemeHint) ...[
+                GlassHint(
+                  text: 'Choose a place that feels right.',
+                  onDismiss: () => setState(() => _showThemeHint = false),
+                ),
+                const SizedBox(height: 16),
+              ],
               // SEASONAL
               Text("Seasonal", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),

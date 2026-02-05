@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/data/feature_discovery_provider.dart';
+import '../../../../core/widgets/glass_hint.dart';
 import '../data/archipelago_provider.dart';
 import '../domain/daily_progress.dart';
 import '../domain/calendar_logic.dart'; // Logic import
@@ -20,10 +22,23 @@ class ArchipelagoScreen extends ConsumerStatefulWidget {
 
 class _ArchipelagoScreenState extends ConsumerState<ArchipelagoScreen> {
   // Navigation state is now managed by providers.
+  bool _showCalendarHint = false;
+  bool _showStatsHint = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final discovery = ref.read(featureDiscoveryProvider);
+      if (!discovery.hasSeenCalendarHint) {
+        setState(() => _showCalendarHint = true);
+        ref.read(featureDiscoveryProvider.notifier).markCalendarHintSeen();
+      }
+      if (!discovery.hasSeenStatsHint) {
+        setState(() => _showStatsHint = true);
+        ref.read(featureDiscoveryProvider.notifier).markStatsHintSeen();
+      }
+    });
   }
 
   DailyProgress? _getProgressForDate(List<DailyProgress> history, DateTime date) {
@@ -103,13 +118,22 @@ class _ArchipelagoScreenState extends ConsumerState<ArchipelagoScreen> {
         duration: const Duration(milliseconds: 300),
         child: SingleChildScrollView(
           key: ValueKey(visibleMonth), // Triggers animation on change
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              // Weekday Headers (S M T W T F S)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                if (_showCalendarHint)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: GlassHint(
+                      text: 'Each focused day leaves a quiet mark.',
+                      onDismiss: () => setState(() => _showCalendarHint = false),
+                    ),
+                  ),
+                if (_showCalendarHint) const SizedBox(height: 12),
+                // Weekday Headers (S M T W T F S)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: ["S", "M", "T", "W", "T", "F", "S"].map((day) {
                     return SizedBox(
@@ -164,6 +188,15 @@ class _ArchipelagoScreenState extends ConsumerState<ArchipelagoScreen> {
               const SizedBox(height: 24),
               
               // Analytics Section
+              if (_showStatsHint)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GlassHint(
+                    text: "Look back gently. Progress doesn't need pressure.",
+                    onDismiss: () => setState(() => _showStatsHint = false),
+                  ),
+                ),
+              if (_showStatsHint) const SizedBox(height: 12),
               MonthlyStatsPanel(stats: stats),
               MonthlyVisualsPanel(
                 stats: stats,
