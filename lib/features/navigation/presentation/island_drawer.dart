@@ -8,6 +8,7 @@ import '../../../../core/widgets/glass_hint.dart';
 import '../../shop/presentation/shop_screen.dart';
 import '../../archipelago/presentation/archipelago_screen.dart';
 import '../../../../services/auth_service.dart';
+import '../../island/presentation/layers/island_base_layer.dart';
 
 class IslandDrawer extends ConsumerWidget {
   const IslandDrawer({super.key});
@@ -171,6 +172,21 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
       ),
     ];
 
+    final houseOptions = [
+      _ThemeItem(
+        label: "Default House",
+        house: AppHouse.defaultHouse,
+        color: const Color(0xFFEADCCB),
+        preview: const HousePreview(house: AppHouse.defaultHouse),
+      ),
+      _ThemeItem(
+        label: "Adventure House",
+        house: AppHouse.adventureHouse,
+        color: const Color(0xFFD6E4D2),
+        preview: const HousePreview(house: AppHouse.adventureHouse),
+      ),
+    ];
+
     return AlertDialog(
       backgroundColor: AppColors.skyBottom,
       contentPadding: const EdgeInsets.all(24),
@@ -199,7 +215,7 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
                 children: seasonalOptions.map((item) => _ThemeCard(
                   item: item,
                   isSelected: state.season == item.season,
-                  onTap: () => ref.read(themeProvider.notifier).setSeason(item.season),
+                  onTap: () => ref.read(themeProvider.notifier).setSeason(item.season!),
                 )).toList(),
               ),
               
@@ -215,7 +231,23 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
                 children: envOptions.map((item) => _ThemeCard(
                   item: item,
                   isSelected: state.environment == item.environment,
-                  onTap: () => ref.read(themeProvider.notifier).setEnvironment(item.environment),
+                  onTap: () => ref.read(themeProvider.notifier).setEnvironment(item.environment!),
+                )).toList(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // HOUSE
+              Text("House", style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSub, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: houseOptions.map((item) => _ThemeCard(
+                  item: item,
+                  isSelected: state.house == item.house,
+                  onTap: () => ref.read(themeProvider.notifier).setHouse(item.house!),
                 )).toList(),
               ),
             ],
@@ -236,18 +268,21 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
 // Data Helper
 class _ThemeItem {
   final String label;
-  // Use dynamic to allow either enum, or nullable fields
-  final dynamic season; 
-  final dynamic environment;
+  final AppSeason? season; 
+  final AppEnvironment? environment;
+  final AppHouse? house;
   final Color color; // Fallback
-  final String assetPath;
+  final String? assetPath;
+  final Widget? preview;
 
   _ThemeItem({
     required this.label,
     required this.color,
-    required this.assetPath,
+    this.assetPath,
+    this.preview,
     this.season,
     this.environment,
+    this.house,
   });
 }
 
@@ -267,6 +302,21 @@ class _ThemeCard extends StatelessWidget {
     // Slightly larger for better visibility of images
     const double cardWidth = 110; 
     const double cardHeight = 120;
+
+    final Widget previewChild;
+    if (item.preview != null) {
+      previewChild = item.preview!;
+    } else if (item.assetPath != null && item.assetPath!.isNotEmpty) {
+      previewChild = Image.asset(
+        item.assetPath!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(color: item.color); // Graceful fallback
+        },
+      );
+    } else {
+      previewChild = Container(color: item.color);
+    }
 
     return Material(
       color: Colors.transparent,
@@ -296,16 +346,10 @@ class _ThemeCard extends StatelessWidget {
                    child: Stack(
                      fit: StackFit.expand,
                      children: [
-                       Container(
-                         color: item.color.withOpacity(0.3), // Fallback base
-                         child: Image.asset(
-                           item.assetPath,
-                           fit: BoxFit.cover,
-                           errorBuilder: (context, error, stackTrace) {
-                              return Container(color: item.color); // Graceful fallback
-                           },
-                         ),
-                       ),
+                        Container(
+                          color: item.color.withOpacity(0.3), // Fallback base
+                          child: previewChild,
+                        ),
                        if (isSelected) 
                          Container(
                            color: Colors.black.withOpacity(0.1),
@@ -339,6 +383,48 @@ class _ThemeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class HousePreview extends StatelessWidget {
+  final AppHouse house;
+
+  const HousePreview({super.key, required this.house});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth < constraints.maxHeight
+            ? constraints.maxWidth
+            : constraints.maxHeight;
+        final houseSize = available * 0.9;
+        return Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            width: houseSize,
+            height: houseSize * 0.85,
+            child: house == AppHouse.adventureHouse
+                ? AdventureHouseWidget(
+                    size: houseSize,
+                    lightIntensity: 0.0,
+                    isNight: false,
+                    isSakura: false,
+                    isAutumn: false,
+                    isWinter: false,
+                  )
+                : CalmHouseWidget(
+                    size: houseSize,
+                    lightIntensity: 0.0,
+                    isSakura: false,
+                    isAutumn: false,
+                    isWinter: false,
+                    isNight: false,
+                  ),
+          ),
+        );
+      },
     );
   }
 }

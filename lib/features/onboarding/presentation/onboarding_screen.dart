@@ -101,10 +101,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final ThemeState islandTheme = const ThemeState();
     final slide = _slides[_pageIndex];
     final bool showIsland = slide.visualType == _OnboardingVisualType.invitation;
-    final bool isNight = islandTheme.mode == AppThemeMode.night;
+    final ThemeState islandTheme = const ThemeState(mode: AppThemeMode.night);
+    final bool isNight = showIsland;
     final bgColors = showIsland ? _getBackgroundColors(islandTheme) : slide.gradient;
 
     return Scaffold(

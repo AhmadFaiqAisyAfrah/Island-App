@@ -23,27 +23,36 @@ enum AppEnvironment {
   forest,
 }
 
+enum AppHouse {
+  defaultHouse,
+  adventureHouse,
+}
+
 @immutable
 class ThemeState {
   final AppThemeMode mode;
   final AppSeason season;
   final AppEnvironment environment;
+  final AppHouse house;
 
   const ThemeState({
     this.mode = AppThemeMode.day,
     this.season = AppSeason.normal,
     this.environment = AppEnvironment.defaultSky,
+    this.house = AppHouse.defaultHouse,
   });
 
   ThemeState copyWith({
     AppThemeMode? mode,
     AppSeason? season,
     AppEnvironment? environment,
+    AppHouse? house,
   }) {
     return ThemeState(
       mode: mode ?? this.mode,
       season: season ?? this.season,
       environment: environment ?? this.environment,
+      house: house ?? this.house,
     );
   }
   
@@ -53,11 +62,12 @@ class ThemeState {
     return other is ThemeState && 
            other.mode == mode && 
            other.season == season &&
-           other.environment == environment;
+           other.environment == environment &&
+           other.house == house;
   }
 
   @override
-  int get hashCode => Object.hash(mode, season, environment);
+  int get hashCode => Object.hash(mode, season, environment, house);
 }
 
 class ThemeNotifier extends StateNotifier<ThemeState> {
@@ -65,6 +75,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
   static const _keyMode = 'theme_mode';
   static const _keySeason = 'theme_season';
   static const _keyEnvironment = 'theme_env';
+  static const _keyHouse = 'theme_house';
 
   ThemeNotifier(this._prefs) : super(const ThemeState()) {
     _loadTheme();
@@ -74,11 +85,13 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
     final modeIndex = _prefs.getInt(_keyMode) ?? 0;
     final seasonIndex = _prefs.getInt(_keySeason) ?? 0;
     final envIndex = _prefs.getInt(_keyEnvironment) ?? 0;
+    final houseIndex = _prefs.getInt(_keyHouse) ?? 0;
 
     state = ThemeState(
       mode: AppThemeMode.values.length > modeIndex ? AppThemeMode.values[modeIndex] : AppThemeMode.day,
       season: AppSeason.values.length > seasonIndex ? AppSeason.values[seasonIndex] : AppSeason.normal,
       environment: AppEnvironment.values.length > envIndex ? AppEnvironment.values[envIndex] : AppEnvironment.defaultSky,
+      house: AppHouse.values.length > houseIndex ? AppHouse.values[houseIndex] : AppHouse.defaultHouse,
     );
   }
 
@@ -95,6 +108,11 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
   void setEnvironment(AppEnvironment environment) {
     state = state.copyWith(environment: environment);
     _prefs.setInt(_keyEnvironment, environment.index);
+  }
+
+  void setHouse(AppHouse house) {
+    state = state.copyWith(house: house);
+    _prefs.setInt(_keyHouse, house.index);
   }
   
   void toggleMode() {

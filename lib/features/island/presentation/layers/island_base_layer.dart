@@ -47,6 +47,22 @@ class CalmPalette {
   static const Color nightHouseRoof = Color(0xFF70544C); // Darker Brown (Warmer)
   static const Color nightHouseDoor = Color(0xFF70544C); // Darker Brown (Warmer)
 
+  // Adventure House (Day)
+  static const Color adventureCanopy = Color(0xFFA6C3A1); 
+  static const Color adventureCanopyShade = Color(0xFF8FB08B); 
+  static const Color adventureTrunk = Color(0xFFC3A286); 
+  static const Color adventurePlatform = Color(0xFFB58C6E); 
+  static const Color adventureDoor = Color(0xFF9B7760); 
+  static const Color adventureWindow = Color(0xFFEADCCB); 
+
+  // Adventure House (Night)
+  static const Color nightAdventureCanopy = Color(0xFF7F977B); 
+  static const Color nightAdventureCanopyShade = Color(0xFF6F886D); 
+  static const Color nightAdventureTrunk = Color(0xFF9C7E69); 
+  static const Color nightAdventurePlatform = Color(0xFF8E6E5B); 
+  static const Color nightAdventureDoor = Color(0xFF7B5E4D); 
+  static const Color nightAdventureWindow = Color(0xFFD2C1B1); 
+
   // Nature Details (Night)
   static const Color nightFoliage = Color(0xFF909A85); // Matches nightGrassBase
   static const Color nightFoliageSakura = Color(0xFFCDB1B1); // Dimmed Pink 
@@ -256,6 +272,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     final bool isSakura = widget.themeState.season == AppSeason.sakura;
     final bool isAutumn = widget.themeState.season == AppSeason.autumn;
     final bool isWinter = widget.themeState.season == AppSeason.winter;
+    final bool isAdventureHouse = widget.themeState.house == AppHouse.adventureHouse;
 
     // SHADOW LOGIC
     // Day: Neutral grounding shadow (Grey-Brown)
@@ -315,14 +332,23 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
           Positioned(
             bottom: w * 0.48, 
             left: w * 0.05,  
-            child: CalmHouseWidget(
-              size: w * 0.50, 
-              lightIntensity: lightIntensity,
-              isSakura: isSakura,
-              isAutumn: isAutumn,
-              isWinter: isWinter,
-              isNight: isNight,
-            ), 
+            child: isAdventureHouse
+                ? AdventureHouseWidget(
+                    size: w * 0.55,
+                    lightIntensity: lightIntensity,
+                    isNight: isNight,
+                    isSakura: isSakura,
+                    isAutumn: isAutumn,
+                    isWinter: isWinter,
+                  )
+                : CalmHouseWidget(
+                    size: w * 0.50, 
+                    lightIntensity: lightIntensity,
+                    isSakura: isSakura,
+                    isAutumn: isAutumn,
+                    isWinter: isWinter,
+                    isNight: isNight,
+                  ), 
           ),
 
           // 2.5 GARDEN LAMP (New)
@@ -393,17 +419,25 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                  left: currentLeft,
                  child: Transform.scale(
                    scale: idleScale,
-                   child: CalmCharacterWidget(
-                     isFocusing: widget.isFocusing, 
-                     walkProgress: walkVal,
-                     isFacingLeft: !isMovingRight,
-                     size: w * 0.09, 
-                     isWalking: useSideView,
-                   ),
-                 ),
-               );
-             }
-           ),
+                    child: isAdventureHouse
+                        ? AdventureCharacterWidget(
+                            isFocusing: widget.isFocusing,
+                            walkProgress: walkVal,
+                            isFacingLeft: !isMovingRight,
+                            size: w * 0.09,
+                            isWalking: useSideView,
+                          )
+                        : CalmCharacterWidget(
+                            isFocusing: widget.isFocusing, 
+                            walkProgress: walkVal,
+                            isFacingLeft: !isMovingRight,
+                            size: w * 0.09, 
+                            isWalking: useSideView,
+                          ),
+                  ),
+                );
+              }
+            ),
 
           // 5. SAKURA PETALS (Overlay - Only triggered once)
           // Drawn on top of everything
@@ -692,6 +726,256 @@ class _CalmHousePainter extends CustomPainter {
            isAutumn != oldDelegate.isAutumn || 
            isWinter != oldDelegate.isWinter ||
            isNight != oldDelegate.isNight;
+  }
+}
+
+class AdventureHouseWidget extends StatelessWidget {
+  final double size;
+  final double lightIntensity;
+  final bool isNight;
+  final bool isSakura;
+  final bool isAutumn;
+  final bool isWinter;
+
+  const AdventureHouseWidget({
+    super.key,
+    required this.size,
+    required this.lightIntensity,
+    required this.isNight,
+    this.isSakura = false,
+    this.isAutumn = false,
+    this.isWinter = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size * 0.85,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0.0, end: lightIntensity),
+        duration: const Duration(milliseconds: 1200),
+        builder: (context, lightOpacity, child) {
+          return CustomPaint(
+            painter: _AdventureHousePainter(
+              lightOpacity: lightOpacity,
+              isNight: isNight,
+              isSakura: isSakura,
+              isAutumn: isAutumn,
+              isWinter: isWinter,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AdventureHousePainter extends CustomPainter {
+  final double lightOpacity;
+  final bool isNight;
+  final bool isSakura;
+  final bool isAutumn;
+  final bool isWinter;
+
+  _AdventureHousePainter({
+    required this.lightOpacity,
+    required this.isNight,
+    required this.isSakura,
+    required this.isAutumn,
+    required this.isWinter,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    Color canopyBase = isNight ? CalmPalette.nightAdventureCanopy : CalmPalette.adventureCanopy;
+    Color canopyShade = isNight ? CalmPalette.nightAdventureCanopyShade : CalmPalette.adventureCanopyShade;
+    double canopyOpacity = 1.0;
+    double shadeOpacity = 0.7;
+
+    if (isSakura) {
+      canopyBase = isNight ? CalmPalette.nightFoliageSakura : CalmPalette.sakuraLight;
+      canopyShade = CalmPalette.sakuraDark;
+      canopyOpacity = 0.85;
+      shadeOpacity = 0.55;
+    } else if (isAutumn) {
+      canopyBase = isNight
+          ? CalmPalette.autumnLeafLight.withOpacity(0.7)
+          : CalmPalette.autumnLeafLight;
+      canopyShade = CalmPalette.autumnLeafDark;
+      canopyOpacity = 0.8;
+      shadeOpacity = 0.5;
+    } else if (isWinter) {
+      canopyBase = isNight ? CalmPalette.pineGreen.withOpacity(0.7) : CalmPalette.pineGreen;
+      canopyShade = isNight ? CalmPalette.pineGreen.withOpacity(0.55) : CalmPalette.pineGreen.withOpacity(0.6);
+      canopyOpacity = 0.55;
+      shadeOpacity = 0.35;
+    }
+    final trunkColor = isNight ? CalmPalette.nightAdventureTrunk : CalmPalette.adventureTrunk;
+    final platformColor = isNight ? CalmPalette.nightAdventurePlatform : CalmPalette.adventurePlatform;
+    final doorColor = isNight ? CalmPalette.nightAdventureDoor : CalmPalette.adventureDoor;
+    final windowBase = isNight ? CalmPalette.nightAdventureWindow : CalmPalette.adventureWindow;
+
+    // Canopy
+    paint.color = canopyBase.withOpacity(canopyOpacity);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w * 0.58, h * 0.23), width: w * 0.92, height: h * 0.5),
+      paint,
+    );
+    paint.color = canopyShade.withOpacity(shadeOpacity);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w * 0.45, h * 0.3), width: w * 0.62, height: h * 0.34),
+      paint,
+    );
+    if (!isWinter) {
+      paint.color = canopyBase.withOpacity(canopyOpacity * 0.9);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(w * 0.62, h * 0.34), width: w * 0.48, height: h * 0.22),
+        paint,
+      );
+    }
+    if (isWinter) {
+      paint.color = CalmPalette.snowWhite.withOpacity(0.6);
+      canvas.drawOval(Rect.fromLTWH(w * 0.3, h * 0.14, w * 0.22, h * 0.08), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.55, h * 0.16, w * 0.18, h * 0.07), paint);
+      paint.color = CalmPalette.snowWhite.withOpacity(0.35);
+      canvas.drawCircle(Offset(w * 0.25, h * 0.12), w * 0.012, paint);
+      canvas.drawCircle(Offset(w * 0.75, h * 0.2), w * 0.01, paint);
+    }
+    if (isSakura) {
+      paint.color = CalmPalette.sakuraLight.withOpacity(0.5);
+      canvas.drawOval(Rect.fromLTWH(w * 0.7, h * 0.18, w * 0.04, w * 0.025), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.2, h * 0.22, w * 0.03, w * 0.02), paint);
+    }
+
+    // Trunk
+    paint.color = trunkColor;
+    final trunkRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.45, h * 0.36, w * 0.18, h * 0.46),
+      Radius.circular(w * 0.08),
+    );
+    canvas.drawRRect(trunkRect, paint);
+
+    // Platform
+    paint.color = platformColor;
+    final platformRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.12, h * 0.63, w * 0.76, h * 0.1),
+      Radius.circular(w * 0.05),
+    );
+    canvas.drawRRect(platformRect, paint);
+
+    // Ladder
+    final ladderHeight = h * 0.26;
+    final ladderWidth = w * 0.14;
+    final railWidth = w * 0.02;
+    canvas.save();
+    canvas.translate(w * 0.33, h * 0.62);
+    canvas.rotate(-0.12);
+    paint.color = platformColor.withOpacity(0.95);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, railWidth, ladderHeight),
+        Radius.circular(railWidth),
+      ),
+      paint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(ladderWidth - railWidth, 0, railWidth, ladderHeight),
+        Radius.circular(railWidth),
+      ),
+      paint,
+    );
+    paint.color = platformColor.withOpacity(0.85);
+    final rungHeight = w * 0.012;
+    final rungInset = railWidth * 0.9;
+    final rungOffsets = [0.08, 0.26, 0.44, 0.62, 0.8];
+    for (var i = 0; i < rungOffsets.length; i++) {
+      final y = ladderHeight * rungOffsets[i];
+      final jitter = i.isEven ? -w * 0.004 : w * 0.003;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(rungInset + jitter, y, ladderWidth - (rungInset * 2), rungHeight),
+          Radius.circular(rungHeight),
+        ),
+        paint,
+      );
+    }
+    canvas.restore();
+
+    // House Pod
+    paint.color = trunkColor.withOpacity(0.95);
+    final podRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.24, h * 0.48, w * 0.34, h * 0.22),
+      Radius.circular(w * 0.08),
+    );
+    canvas.drawRRect(podRect, paint);
+
+    // Door
+    paint.color = doorColor;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.37, h * 0.6, w * 0.1, h * 0.12),
+        Radius.circular(w * 0.03),
+      ),
+      paint,
+    );
+
+    // Windows
+    paint.color = windowBase.withOpacity(0.7 + (lightOpacity * 0.2));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.57), w * 0.04, paint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.28, h * 0.54, w * 0.08, h * 0.06),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+
+    // Warm glow
+    if (lightOpacity > 0) {
+      paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.6);
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
+      canvas.drawCircle(Offset(w * 0.5, h * 0.57), w * 0.07, paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.28, h * 0.54, w * 0.08, h * 0.06), paint);
+      paint.maskFilter = null;
+
+      paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.5);
+      canvas.drawOval(Rect.fromLTWH(w * 0.34, h * 0.72, w * 0.18, h * 0.05), paint);
+    }
+
+    if (isWinter) {
+      paint.color = CalmPalette.snowWhite.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.26, h * 0.81, w * 0.16, h * 0.05), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.48, h * 0.83, w * 0.2, h * 0.06), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.18, h * 0.86, w * 0.12, h * 0.04), paint);
+    } else if (isAutumn) {
+      paint.color = CalmPalette.autumnLeafLight.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.22, h * 0.82, w * 0.03, w * 0.018), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.36, h * 0.86, w * 0.028, w * 0.016), paint);
+      paint.color = CalmPalette.autumnLeafDark.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.3, h * 0.84, w * 0.03, w * 0.018), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.46, h * 0.82, w * 0.028, w * 0.016), paint);
+    } else if (isSakura) {
+      paint.color = CalmPalette.sakuraLight.withOpacity(0.75);
+      canvas.drawOval(Rect.fromLTWH(w * 0.22, h * 0.83, w * 0.03, w * 0.02), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.34, h * 0.86, w * 0.028, w * 0.018), paint);
+      paint.color = CalmPalette.sakuraDark.withOpacity(0.6);
+      canvas.drawOval(Rect.fromLTWH(w * 0.4, h * 0.82, w * 0.026, w * 0.016), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AdventureHousePainter oldDelegate) {
+    return lightOpacity != oldDelegate.lightOpacity ||
+        isNight != oldDelegate.isNight ||
+        isSakura != oldDelegate.isSakura ||
+        isAutumn != oldDelegate.isAutumn ||
+        isWinter != oldDelegate.isWinter;
   }
 }
 
@@ -1000,6 +1284,328 @@ class CalmCharacterWidget extends StatelessWidget {
   }
 }
 
+class AdventureCharacterWidget extends StatelessWidget {
+  final bool isFocusing;
+  final double size;
+  final double walkProgress;
+  final bool isFacingLeft;
+  final bool isWalking;
+
+  const AdventureCharacterWidget({
+    super.key,
+    required this.isFocusing,
+    required this.size,
+    required this.walkProgress,
+    required this.isFacingLeft,
+    required this.isWalking,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isWalking) {
+      return SizedBox(
+        width: size,
+        height: size * 2.2,
+        child: CustomPaint(
+          painter: _CalmCharacterPainter(
+            walkProgress: 0,
+            isMoving: false,
+            viewMode: CharacterViewMode.front,
+            palette: _CharacterPalette.adventurePalette,
+          ),
+        ),
+      );
+    }
+
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()..scale(isFacingLeft ? -1.0 : 1.0, 1.0),
+      child: SizedBox(
+        width: size,
+        height: size * 2.2,
+        child: CustomPaint(
+          painter: _CalmCharacterPainter(
+            walkProgress: walkProgress,
+            isMoving: true,
+            viewMode: CharacterViewMode.side,
+            palette: _CharacterPalette.adventurePalette,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/* class _AdventureCharacterPainter extends CustomPainter {
+  final double walkProgress;
+  final bool isMoving;
+  final CharacterViewMode viewMode;
+
+  _AdventureCharacterPainter({
+    required this.walkProgress,
+    required this.isMoving,
+    required this.viewMode,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final Paint p = Paint()..style = PaintingStyle.fill;
+
+    const skinBase = Color(0xFFFFC7B2);
+    const skinShadow = Color(0xFFFFB59C);
+    const hair = Color(0xFF4F453F);
+    const tunic = Color(0xFF8BA58C);
+    const tunicShade = Color(0xFF748B76);
+    const hat = Color(0xFFC6A27D);
+    const hatShade = Color(0xFFB38C69);
+    const boot = Color(0xFF6D5A4E);
+    const dogBase = Color(0xFFF0D9AA);
+    const dogShade = Color(0xFFD7BA85);
+    const dogNose = Color(0xFF6D5A4E);
+
+    final kidX = w * 0.38;
+    final dogX = w * 0.68;
+    final kidLeanX = w * 0.02;
+    final kidLeanY = h * 0.01;
+
+    if (viewMode == CharacterViewMode.front) {
+      final frontX = kidX + kidLeanX;
+      final frontY = kidLeanY;
+
+      // Explorer Kid
+      p.color = tunic;
+      final torsoRect = Rect.fromLTWH(frontX - w * 0.135, h * 0.53 + frontY, w * 0.27, h * 0.3);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(torsoRect, Radius.circular(w * 0.12)),
+        p,
+      );
+      canvas.drawCircle(Offset(frontX - w * 0.12, h * 0.55 + frontY), w * 0.08, p);
+      canvas.drawCircle(Offset(frontX + w * 0.12, h * 0.55 + frontY), w * 0.08, p);
+
+      p.color = tunicShade;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(frontX - w * 0.11, h * 0.62 + frontY, w * 0.22, h * 0.1),
+          Radius.circular(w * 0.06),
+        ),
+        p,
+      );
+
+      p.color = boot;
+      canvas.drawRect(Rect.fromLTWH(frontX - w * 0.085, h * 0.86 + frontY, w * 0.06, h * 0.08), p);
+      canvas.drawRect(Rect.fromLTWH(frontX + w * 0.02, h * 0.84 + frontY, w * 0.06, h * 0.08), p);
+
+      p.color = skinBase;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(frontX, h * 0.39 + frontY), width: w * 0.28, height: w * 0.28),
+        p,
+      );
+
+      p.color = hair;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(frontX, h * 0.35 + frontY), width: w * 0.3, height: w * 0.2),
+        p,
+      );
+
+      p.color = hat;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(frontX, h * 0.29 + frontY), width: w * 0.24, height: w * 0.11),
+          Radius.circular(w * 0.06),
+        ),
+        p,
+      );
+      p.color = hatShade;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(frontX, h * 0.315 + frontY), width: w * 0.26, height: w * 0.04),
+          Radius.circular(w * 0.03),
+        ),
+        p,
+      );
+
+      p.color = skinShadow;
+      canvas.drawOval(Rect.fromCenter(center: Offset(frontX - w * 0.15, h * 0.62 + frontY), width: w * 0.075, height: w * 0.075), p);
+      canvas.drawOval(Rect.fromCenter(center: Offset(frontX + w * 0.14, h * 0.6 + frontY), width: w * 0.075, height: w * 0.075), p);
+      canvas.drawOval(Rect.fromCenter(center: Offset(frontX - w * 0.12, h * 0.68 + frontY), width: w * 0.06, height: w * 0.06), p);
+      canvas.drawOval(Rect.fromCenter(center: Offset(frontX + w * 0.1, h * 0.66 + frontY), width: w * 0.06, height: w * 0.06), p);
+
+      // Elastic Dog
+      p.color = dogBase;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(dogX, h * 0.78), width: w * 0.32, height: h * 0.15),
+        p,
+      );
+      p.color = dogShade;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(dogX + w * 0.18, h * 0.73), width: w * 0.14, height: w * 0.14),
+        p,
+      );
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(dogX + w * 0.2, h * 0.68), width: w * 0.06, height: w * 0.08),
+        p,
+      );
+      p.color = dogBase;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(dogX + w * 0.18, h * 0.73), width: w * 0.12, height: w * 0.12),
+        p,
+      );
+      p.color = dogShade;
+      canvas.drawRect(Rect.fromLTWH(dogX - w * 0.12, h * 0.84, w * 0.04, h * 0.08), p);
+      canvas.drawRect(Rect.fromLTWH(dogX - w * 0.02, h * 0.84, w * 0.04, h * 0.08), p);
+      canvas.drawRect(Rect.fromLTWH(dogX + w * 0.06, h * 0.84, w * 0.04, h * 0.08), p);
+
+      p.color = dogNose;
+      canvas.drawCircle(Offset(dogX + w * 0.22, h * 0.74), w * 0.02, p);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(dogX - w * 0.18, h * 0.78), width: w * 0.08, height: w * 0.04),
+        p,
+      );
+      return;
+    }
+
+    final t = walkProgress * math.pi * 2;
+    final legSwing = isMoving ? math.sin(t) * (w * 0.08) : 0.0;
+    final armSwing = isMoving ? math.cos(t) * 0.35 : 0.0;
+    final armOffset = isMoving ? math.sin(t) * 2.0 : 0.0;
+    final dogLegSwing = isMoving ? math.sin(t + math.pi) * (w * 0.05) : 0.0;
+    final dogStretch = isMoving ? 1.0 + (math.sin(t) * 0.04) : 1.0;
+    final bob = isMoving ? -0.5 * math.sin(t * 2).abs() : 0.0;
+
+    canvas.save();
+    canvas.translate(0, bob);
+
+    // Explorer Kid (Side)
+    final sideX = kidX + kidLeanX;
+    final sideY = kidLeanY;
+
+    // Back arm (behind body)
+    canvas.save();
+    canvas.translate(sideX + w * 0.02 - armOffset, h * 0.6 + sideY);
+    canvas.rotate(-armSwing * 0.6);
+    p.color = tunicShade.withOpacity(0.85);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w * 0.07, h * 0.1),
+        Radius.circular(w * 0.04),
+      ),
+      p,
+    );
+    canvas.rotate(-0.4);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.01, h * 0.08, w * 0.07, h * 0.08),
+        Radius.circular(w * 0.04),
+      ),
+      p,
+    );
+    canvas.restore();
+
+    // Body + head + legs
+    p.color = tunic;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(sideX - w * 0.11, h * 0.53 + sideY, w * 0.22, h * 0.3),
+        Radius.circular(w * 0.1),
+      ),
+      p,
+    );
+    p.color = tunicShade;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(sideX - w * 0.08, h * 0.63 + sideY, w * 0.16, h * 0.08),
+        Radius.circular(w * 0.05),
+      ),
+      p,
+    );
+    p.color = boot;
+    canvas.drawRect(Rect.fromLTWH(sideX - w * 0.02 + legSwing + w * 0.02, h * 0.86 + sideY, w * 0.06, h * 0.08), p);
+    p.color = skinBase;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(sideX + w * 0.03, h * 0.39 + sideY), width: w * 0.26, height: w * 0.26),
+      p,
+    );
+    p.color = hair;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(sideX + w * 0.01, h * 0.35 + sideY), width: w * 0.24, height: w * 0.18),
+      p,
+    );
+    p.color = hat;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(sideX + w * 0.03, h * 0.3 + sideY), width: w * 0.22, height: w * 0.1),
+        Radius.circular(w * 0.06),
+      ),
+      p,
+    );
+    p.color = hatShade;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(sideX + w * 0.05, h * 0.32 + sideY), width: w * 0.24, height: w * 0.035),
+        Radius.circular(w * 0.02),
+      ),
+      p,
+    );
+
+    // Front arm (in front of body)
+    canvas.save();
+    canvas.translate(sideX + w * 0.06 + armOffset, h * 0.6 + sideY);
+    canvas.rotate(armSwing * 0.6);
+    p.color = tunicShade;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w * 0.07, h * 0.1),
+        Radius.circular(w * 0.04),
+      ),
+      p,
+    );
+    canvas.rotate(0.5);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.01, h * 0.08, w * 0.07, h * 0.08),
+        Radius.circular(w * 0.04),
+      ),
+      p,
+    );
+    canvas.restore();
+
+    // Elastic Dog (Side)
+    final dogBodyWidth = w * 0.32 * dogStretch;
+    p.color = dogBase;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(dogX, h * 0.78), width: dogBodyWidth, height: h * 0.13),
+      p,
+    );
+    p.color = dogShade;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(dogX + w * 0.18, h * 0.74), width: w * 0.12, height: w * 0.12),
+      p,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(dogX + w * 0.2, h * 0.69), width: w * 0.05, height: w * 0.07),
+      p,
+    );
+    p.color = dogNose;
+    canvas.drawCircle(Offset(dogX + w * 0.24, h * 0.75), w * 0.018, p);
+    p.color = dogShade;
+    canvas.drawRect(Rect.fromLTWH(dogX - w * 0.12 + dogLegSwing, h * 0.84, w * 0.04, h * 0.08), p);
+    canvas.drawRect(Rect.fromLTWH(dogX - w * 0.02 - dogLegSwing, h * 0.84, w * 0.04, h * 0.08), p);
+    canvas.drawRect(Rect.fromLTWH(dogX + w * 0.06 + dogLegSwing, h * 0.84, w * 0.04, h * 0.08), p);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(dogX - w * 0.18, h * 0.78), width: w * 0.08, height: w * 0.04),
+      p,
+    );
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+*/
 class _SakuraPetalPainter extends CustomPainter {
   final double progress; // 0.0 -> 1.0 (4 seconds)
   
@@ -1146,15 +1752,81 @@ class _SnowFlakePainter extends CustomPainter {
 
 enum CharacterViewMode { front, side }
 
+class _CharacterPalette {
+  final Color skinLight;
+  final Color skinDark;
+  final Color hairTop;
+  final Color hairBottom;
+  final Color clothLight;
+  final Color clothDark;
+  final Color leg;
+  final Color blush;
+  final Color eyeWhite;
+  final Color iris;
+  final Color mouth;
+  final Color glasses;
+  final Color highlight;
+
+  const _CharacterPalette({
+    required this.skinLight,
+    required this.skinDark,
+    required this.hairTop,
+    required this.hairBottom,
+    required this.clothLight,
+    required this.clothDark,
+    required this.leg,
+    required this.blush,
+    required this.eyeWhite,
+    required this.iris,
+    required this.mouth,
+    required this.glasses,
+    required this.highlight,
+  });
+
+  static const defaultPalette = _CharacterPalette(
+    skinLight: Color(0xFFFFCCBC),
+    skinDark: Color(0xFFFFAB91),
+    hairTop: Color(0xFF4E342E),
+    hairBottom: Color(0xFF3E2723),
+    clothLight: Color(0xFF8D6E63),
+    clothDark: Color(0xFF6D4C41),
+    leg: Color(0xFF3E2723),
+    blush: Color(0xFFFF8A65),
+    eyeWhite: Color(0xFFF5F5F5),
+    iris: Color(0xFF5D4037),
+    mouth: Color(0xFF8D6E63),
+    glasses: Color(0xFF455A64),
+    highlight: Colors.white,
+  );
+
+  static const adventurePalette = _CharacterPalette(
+    skinLight: Color(0xFFFFC9B5),
+    skinDark: Color(0xFFFFB59C),
+    hairTop: Color(0xFF5A4E45),
+    hairBottom: Color(0xFF473C35),
+    clothLight: Color(0xFF8BA58C),
+    clothDark: Color(0xFF728A75),
+    leg: Color(0xFF4A3F38),
+    blush: Color(0xFFFF9B82),
+    eyeWhite: Color(0xFFF5F2EE),
+    iris: Color(0xFF5D4037),
+    mouth: Color(0xFF7A6C62),
+    glasses: Color(0xFF455A64),
+    highlight: Colors.white,
+  );
+}
+
 class _CalmCharacterPainter extends CustomPainter {
   final double walkProgress;
   final bool isMoving;
   final CharacterViewMode viewMode;
+  final _CharacterPalette palette;
   
   _CalmCharacterPainter({
     required this.walkProgress, 
     required this.isMoving,
     required this.viewMode,
+    this.palette = _CharacterPalette.defaultPalette,
   });
   
   @override
@@ -1167,25 +1839,22 @@ class _CalmCharacterPainter extends CustomPainter {
     final Paint p = Paint()..style = PaintingStyle.fill;
     
     // --- PALETTE (Earth Tones & Softness) ---
-    // Skin: Warm gentle peach
     final skinGradient = RadialGradient(
-      colors: [Color(0xFFFFCCBC), Color(0xFFFFAB91)], 
+      colors: [palette.skinLight, palette.skinDark], 
       center: Alignment(0.0, -0.2),
       radius: 0.5,
     );
     
-    // Hair: Soft dark brown (Natural)
     final hairGradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF4E342E), Color(0xFF3E2723)], 
+      colors: [palette.hairTop, palette.hairBottom], 
     );
     
-    // Cloth: Muted Sage/Brown Tunic (Organic)
     final clothGradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF8D6E63), Color(0xFF6D4C41)], 
+      colors: [palette.clothLight, palette.clothDark], 
     );
 
     // --- FRONT VIEW (Stopped/Idle) ---
@@ -1223,9 +1892,9 @@ class _CalmCharacterPainter extends CustomPainter {
 
        // LEGS (Under)
        p.shader = null;
-       p.color = const Color(0xFF3E2723); 
-       canvas.drawRect(Rect.fromLTWH(centerX - w*0.07, h*0.88, w*0.05, h*0.12), p);
-       canvas.drawRect(Rect.fromLTWH(centerX + w*0.02, h*0.88, w*0.05, h*0.12), p);
+        p.color = palette.leg; 
+        canvas.drawRect(Rect.fromLTWH(centerX - w*0.07, h*0.88, w*0.05, h*0.12), p);
+        canvas.drawRect(Rect.fromLTWH(centerX + w*0.02, h*0.88, w*0.05, h*0.12), p);
 
        // ARMS & HANDS (Front View - Visible)
        p.shader = clothGradient.createShader(Rect.fromLTWH(0,0,w,h));
@@ -1249,14 +1918,14 @@ class _CalmCharacterPainter extends CustomPainter {
 
        // HANDS (Skin Tone - Simple Ovals)
        p.shader = null;
-       p.color = const Color(0xFFFFCCBC); 
-       canvas.drawOval(Rect.fromCenter(center: Offset(centerX - w*0.25, h*0.78), width: w*0.06, height: w*0.06), p);
-       canvas.drawOval(Rect.fromCenter(center: Offset(centerX + w*0.25, h*0.78), width: w*0.06, height: w*0.06), p);
+        p.color = palette.skinLight; 
+        canvas.drawOval(Rect.fromCenter(center: Offset(centerX - w*0.25, h*0.78), width: w*0.06, height: w*0.06), p);
+        canvas.drawOval(Rect.fromCenter(center: Offset(centerX + w*0.25, h*0.78), width: w*0.06, height: w*0.06), p);
 
        // NECK
        p.shader = null;
-       p.color = const Color(0xFFFFAB91); 
-       canvas.drawRect(Rect.fromCenter(center: Offset(centerX, h * 0.42), width: w*0.11, height: h*0.08), p);
+        p.color = palette.skinDark; 
+        canvas.drawRect(Rect.fromCenter(center: Offset(centerX, h * 0.42), width: w*0.11, height: h*0.08), p);
 
        // 3. HEAD (Soft Round Oval)
        p.shader = skinGradient.createShader(Rect.fromLTWH(0, 0, w, h));
@@ -1267,35 +1936,35 @@ class _CalmCharacterPainter extends CustomPainter {
        p.shader = null;
        
        // Blush
-       p.color = const Color(0xFFFF8A65).withOpacity(0.15); 
+        p.color = palette.blush.withOpacity(0.15); 
        p.maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0); 
        canvas.drawOval(Rect.fromCenter(center: Offset(centerX - w*0.1, h*0.33), width: w*0.08, height: w*0.05), p);
        canvas.drawOval(Rect.fromCenter(center: Offset(centerX + w*0.1, h*0.33), width: w*0.08, height: w*0.05), p);
        p.maskFilter = null;
        
        // EYES
-       p.color = const Color(0xFFF5F5F5); 
+        p.color = palette.eyeWhite; 
        canvas.drawOval(Rect.fromCenter(center: Offset(centerX - w*0.08, h*0.29), width: w*0.07, height: w*0.045), p);
        canvas.drawOval(Rect.fromCenter(center: Offset(centerX + w*0.08, h*0.29), width: w*0.07, height: w*0.045), p);
        
        // Iris
-       p.color = const Color(0xFF5D4037); 
+        p.color = palette.iris; 
        canvas.drawCircle(Offset(centerX - w*0.08, h*0.29), w*0.022, p);
        canvas.drawCircle(Offset(centerX + w*0.08, h*0.29), w*0.022, p);
        
        // Highlight
-       p.color = Colors.white.withOpacity(0.6);
+        p.color = palette.highlight.withOpacity(0.6);
        canvas.drawCircle(Offset(centerX - w*0.09, h*0.285), w*0.006, p);
        canvas.drawCircle(Offset(centerX + w*0.07, h*0.285), w*0.006, p);
 
        // MOUTH
-       p.color = const Color(0xFF8D6E63);
+        p.color = palette.mouth;
        p.style = PaintingStyle.stroke;
        p.strokeWidth = 0.7;
        canvas.drawArc(Rect.fromCenter(center: Offset(centerX, h*0.34), width: w*0.035, height: w*0.015), 0, math.pi, false, p);
 
        // GLASSES (Significant Size Increase)
-       p.color = const Color(0xFF455A64);
+        p.color = palette.glasses;
        p.strokeWidth = 0.9;
        // Larger + Framing Face
        canvas.drawOval(Rect.fromCenter(center: Offset(centerX - w*0.08, h*0.29), width: w*0.12, height: w*0.09), p);
@@ -1354,7 +2023,7 @@ class _CalmCharacterPainter extends CustomPainter {
 
     // LEGS 
     p.shader = null;
-    p.color = const Color(0xFF3E2723);
+    p.color = palette.leg;
     canvas.drawRect(Rect.fromLTWH(centerX - w*0.05 + legOffset, h*0.85, w*0.08, h*0.15), p);
 
     // BODY (Profile)
@@ -1390,7 +2059,7 @@ class _CalmCharacterPainter extends CustomPainter {
     canvas.drawPath(armPath, p);
     // Hand
     p.shader = null;
-    p.color = const Color(0xFFFFCCBC);
+    p.color = palette.skinLight;
     canvas.drawCircle(Offset(-w*0.04, h*0.22), w*0.045, p);
     canvas.restore();
     
