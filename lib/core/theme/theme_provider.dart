@@ -26,6 +26,7 @@ enum AppEnvironment {
 enum AppHouse {
   defaultHouse,
   adventureHouse,
+  stargazerHut,
 }
 
 @immutable

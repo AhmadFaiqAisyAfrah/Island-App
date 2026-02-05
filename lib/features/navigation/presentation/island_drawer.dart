@@ -185,6 +185,12 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
         color: const Color(0xFFD6E4D2),
         preview: const HousePreview(house: AppHouse.adventureHouse),
       ),
+      _ThemeItem(
+        label: "Stargazer Hut",
+        house: AppHouse.stargazerHut,
+        color: const Color(0xFFD6DEE6),
+        preview: const HousePreview(house: AppHouse.stargazerHut),
+      ),
     ];
 
     return AlertDialog(
@@ -414,14 +420,23 @@ class HousePreview extends StatelessWidget {
                     isAutumn: false,
                     isWinter: false,
                   )
-                : CalmHouseWidget(
-                    size: houseSize,
-                    lightIntensity: 0.0,
-                    isSakura: false,
-                    isAutumn: false,
-                    isWinter: false,
-                    isNight: false,
-                  ),
+                : house == AppHouse.stargazerHut
+                    ? StargazerHutWidget(
+                        size: houseSize,
+                        lightIntensity: 0.0,
+                        isNight: false,
+                        isSakura: false,
+                        isAutumn: false,
+                        isWinter: false,
+                      )
+                    : CalmHouseWidget(
+                        size: houseSize,
+                        lightIntensity: 0.0,
+                        isSakura: false,
+                        isAutumn: false,
+                        isWinter: false,
+                        isNight: false,
+                      ),
           ),
         );
       },

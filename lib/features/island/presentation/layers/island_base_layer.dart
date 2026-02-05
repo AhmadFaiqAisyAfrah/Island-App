@@ -63,6 +63,22 @@ class CalmPalette {
   static const Color nightAdventureDoor = Color(0xFF7B5E4D); 
   static const Color nightAdventureWindow = Color(0xFFD2C1B1); 
 
+  // Stargazer Hut (Day)
+  static const Color stargazerDome = Color(0xFFC8D3DD);
+  static const Color stargazerDomeShade = Color(0xFFAEBBC6);
+  static const Color stargazerRoofTint = Color(0xFFB6C6D2);
+  static const Color stargazerBase = Color(0xFFC1B6A8);
+  static const Color stargazerScope = Color(0xFF8FA0AF);
+  static const Color stargazerTripod = Color(0xFFA38A73);
+
+  // Stargazer Hut (Night)
+  static const Color nightStargazerDome = Color(0xFF9FAEBB);
+  static const Color nightStargazerDomeShade = Color(0xFF8B98A5);
+  static const Color nightStargazerRoofTint = Color(0xFF94A5B3);
+  static const Color nightStargazerBase = Color(0xFF9A8F82);
+  static const Color nightStargazerScope = Color(0xFF7E8C9A);
+  static const Color nightStargazerTripod = Color(0xFF8B7461);
+
   // Nature Details (Night)
   static const Color nightFoliage = Color(0xFF909A85); // Matches nightGrassBase
   static const Color nightFoliageSakura = Color(0xFFCDB1B1); // Dimmed Pink 
@@ -273,6 +289,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     final bool isAutumn = widget.themeState.season == AppSeason.autumn;
     final bool isWinter = widget.themeState.season == AppSeason.winter;
     final bool isAdventureHouse = widget.themeState.house == AppHouse.adventureHouse;
+    final bool isStargazerHut = widget.themeState.house == AppHouse.stargazerHut;
 
     // SHADOW LOGIC
     // Day: Neutral grounding shadow (Grey-Brown)
@@ -341,14 +358,23 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                     isAutumn: isAutumn,
                     isWinter: isWinter,
                   )
-                : CalmHouseWidget(
-                    size: w * 0.50, 
-                    lightIntensity: lightIntensity,
-                    isSakura: isSakura,
-                    isAutumn: isAutumn,
-                    isWinter: isWinter,
-                    isNight: isNight,
-                  ), 
+                : isStargazerHut
+                    ? StargazerHutWidget(
+                        size: w * 0.52,
+                        lightIntensity: lightIntensity,
+                        isNight: isNight,
+                        isSakura: isSakura,
+                        isAutumn: isAutumn,
+                        isWinter: isWinter,
+                      )
+                    : CalmHouseWidget(
+                        size: w * 0.50, 
+                        lightIntensity: lightIntensity,
+                        isSakura: isSakura,
+                        isAutumn: isAutumn,
+                        isWinter: isWinter,
+                        isNight: isNight,
+                      ), 
           ),
 
           // 2.5 GARDEN LAMP (New)
@@ -385,6 +411,17 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
                isNight: isNight,
              ),
           ),
+
+          if (isStargazerHut)
+            Positioned(
+              bottom: w * 0.48,
+              left: w * 0.05,
+              child: StargazerTelescopeWidget(
+                size: w * 0.52,
+                isNight: isNight,
+                isWinter: isWinter,
+              ),
+            ),
 
           // 4. CHARACTER
            AnimatedBuilder(
@@ -976,6 +1013,390 @@ class _AdventureHousePainter extends CustomPainter {
         isSakura != oldDelegate.isSakura ||
         isAutumn != oldDelegate.isAutumn ||
         isWinter != oldDelegate.isWinter;
+  }
+}
+
+class StargazerHutWidget extends StatelessWidget {
+  final double size;
+  final double lightIntensity;
+  final bool isNight;
+  final bool isSakura;
+  final bool isAutumn;
+  final bool isWinter;
+
+  const StargazerHutWidget({
+    super.key,
+    required this.size,
+    required this.lightIntensity,
+    required this.isNight,
+    this.isSakura = false,
+    this.isAutumn = false,
+    this.isWinter = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size * 0.8,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0.0, end: lightIntensity),
+        duration: const Duration(milliseconds: 1200),
+        builder: (context, lightOpacity, child) {
+          return CustomPaint(
+            painter: _StargazerHutPainter(
+              lightOpacity: lightOpacity,
+              isNight: isNight,
+              isSakura: isSakura,
+              isAutumn: isAutumn,
+              isWinter: isWinter,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StargazerHutPainter extends CustomPainter {
+  final double lightOpacity;
+  final bool isNight;
+  final bool isSakura;
+  final bool isAutumn;
+  final bool isWinter;
+
+  _StargazerHutPainter({
+    required this.lightOpacity,
+    required this.isNight,
+    required this.isSakura,
+    required this.isAutumn,
+    required this.isWinter,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final domeColor = isNight ? CalmPalette.nightStargazerDome : CalmPalette.stargazerDome;
+    final domeShade = isNight ? CalmPalette.nightStargazerDomeShade : CalmPalette.stargazerDomeShade;
+    final roofTint = isNight ? CalmPalette.nightStargazerRoofTint : CalmPalette.stargazerRoofTint;
+    final baseColor = isNight ? CalmPalette.nightStargazerBase : CalmPalette.stargazerBase;
+    final scopeColor = isNight ? CalmPalette.nightStargazerScope : CalmPalette.stargazerScope;
+    final tripodColor = isNight ? CalmPalette.nightStargazerTripod : CalmPalette.stargazerTripod;
+
+    // Dome
+    final domeRect = Rect.fromCenter(
+      center: Offset(w * 0.45, h * 0.52),
+      width: w * 0.62,
+      height: h * 0.62,
+    );
+    paint.color = domeColor;
+    canvas.drawOval(domeRect, paint);
+    paint.color = domeShade.withOpacity(0.7);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w * 0.4, h * 0.58), width: w * 0.48, height: h * 0.44),
+      paint,
+    );
+
+    // Roof tint (suggestive transparency)
+    paint.color = roofTint.withOpacity(isNight ? 0.35 : 0.45);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w * 0.48, h * 0.4), width: w * 0.5, height: h * 0.38),
+      paint,
+    );
+
+    // Dome structural lines (curved)
+    final linePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.003
+      ..strokeCap = StrokeCap.round
+      ..color = (isNight ? CalmPalette.nightDeepWater : CalmPalette.cliffShadow).withOpacity(0.22);
+    final topY = domeRect.top + domeRect.height * 0.1;
+    final bottomY = domeRect.bottom - domeRect.height * 0.08;
+    const lineCount = 7;
+    for (var i = 0; i < lineCount; i++) {
+      final t = i / (lineCount - 1);
+      final x = domeRect.left + domeRect.width * (0.16 + (0.68 * t));
+      final curve = (x - domeRect.center.dx) * 0.32;
+      final path = Path()
+        ..moveTo(x, bottomY)
+        ..cubicTo(
+          x + curve,
+          domeRect.center.dy + domeRect.height * 0.15,
+          x + curve * 0.6,
+          domeRect.center.dy - domeRect.height * 0.1,
+          x,
+          topY,
+        );
+      canvas.drawPath(path, linePaint);
+    }
+    final horizontalYs = [0.32, 0.45, 0.58];
+    for (final t in horizontalYs) {
+      final y = domeRect.top + domeRect.height * t;
+      final arcRect = Rect.fromCenter(
+        center: Offset(domeRect.center.dx, y),
+        width: domeRect.width * 0.92,
+        height: domeRect.height * 0.48,
+      );
+      final arcPath = Path()..addArc(arcRect, math.pi, math.pi);
+      canvas.drawPath(arcPath, linePaint);
+    }
+
+    // Base
+    paint.color = baseColor;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.22, h * 0.67, w * 0.46, h * 0.16),
+        Radius.circular(w * 0.08),
+      ),
+      paint,
+    );
+
+    // Door
+    final doorRect = Rect.fromCenter(center: Offset(w * 0.45, h * 0.68), width: w * 0.16, height: h * 0.2);
+    final doorPath = Path()
+      ..moveTo(doorRect.left, doorRect.top)
+      ..lineTo(doorRect.right, doorRect.top)
+      ..arcTo(doorRect, 0, math.pi, false)
+      ..close();
+    paint.color = roofTint.withOpacity(0.22);
+    canvas.drawPath(doorPath, paint);
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.003
+      ..color = (isNight ? CalmPalette.nightDeepWater : CalmPalette.cliffShadow).withOpacity(0.28);
+    canvas.drawPath(doorPath, paint);
+    paint.style = PaintingStyle.fill;
+
+    // Soft interior glow (night)
+    if (isNight) {
+      paint.color = CalmPalette.lightWarm.withOpacity(0.12 + (lightOpacity * 0.18));
+      canvas.drawOval(Rect.fromLTWH(w * 0.34, h * 0.62, w * 0.22, h * 0.12), paint);
+    }
+
+    // String lights (exterior)
+    final wirePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.003
+      ..strokeCap = StrokeCap.round
+      ..color = (isNight ? CalmPalette.nightDeepWater : CalmPalette.cliffShadow).withOpacity(0.22);
+    paint.color = tripodColor.withOpacity(0.7);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.18, h * 0.68, w * 0.015, h * 0.22),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.38, h * 0.68, w * 0.015, h * 0.22),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    final wirePath = Path()
+      ..moveTo(w * 0.19, h * 0.68)
+      ..quadraticBezierTo(w * 0.28, h * 0.72, w * 0.39, h * 0.68);
+    canvas.drawPath(wirePath, wirePaint);
+    final bulbColor = isNight
+        ? CalmPalette.lightWarm.withOpacity(0.6)
+        : roofTint.withOpacity(0.2);
+    paint.color = bulbColor;
+    final bulbPoints = [
+      Offset(w * 0.21, h * 0.69),
+      Offset(w * 0.26, h * 0.71),
+      Offset(w * 0.31, h * 0.72),
+      Offset(w * 0.36, h * 0.7),
+    ];
+    for (final point in bulbPoints) {
+      canvas.drawCircle(point, w * 0.012, paint);
+      if (isNight) {
+        paint.color = CalmPalette.lightWarm.withOpacity(0.22);
+        canvas.drawCircle(point, w * 0.028, paint);
+        paint.color = bulbColor;
+      }
+    }
+
+    // Seasonal scatter
+    if (isWinter) {
+      paint.color = CalmPalette.snowWhite.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.44, h * 0.84, w * 0.2, h * 0.06), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.5, h * 0.86, w * 0.14, h * 0.04), paint);
+      paint.color = CalmPalette.snowWhite.withOpacity(0.25);
+      canvas.drawCircle(Offset(w * 0.36, h * 0.18), w * 0.008, paint);
+      canvas.drawCircle(Offset(w * 0.55, h * 0.22), w * 0.01, paint);
+      canvas.drawCircle(Offset(w * 0.68, h * 0.26), w * 0.007, paint);
+    } else if (isAutumn) {
+      paint.color = CalmPalette.autumnLeafLight.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.22, h * 0.84, w * 0.03, w * 0.018), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.38, h * 0.86, w * 0.028, w * 0.016), paint);
+      paint.color = CalmPalette.autumnLeafDark.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.3, h * 0.88, w * 0.03, w * 0.018), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.62, h * 0.84, w * 0.028, w * 0.016), paint);
+    } else if (isSakura) {
+      paint.color = CalmPalette.sakuraLight.withOpacity(0.75);
+      canvas.drawOval(Rect.fromLTWH(w * 0.24, h * 0.85, w * 0.03, w * 0.02), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.44, h * 0.87, w * 0.028, w * 0.018), paint);
+      paint.color = CalmPalette.sakuraDark.withOpacity(0.6);
+      canvas.drawOval(Rect.fromLTWH(w * 0.52, h * 0.84, w * 0.026, w * 0.016), paint);
+      paint.color = CalmPalette.sakuraLight.withOpacity(0.3);
+      canvas.drawOval(Rect.fromLTWH(w * 0.62, h * 0.24, w * 0.02, w * 0.014), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.3, h * 0.2, w * 0.018, w * 0.012), paint);
+    }
+
+    // Campfire (exterior)
+    paint.color = CalmPalette.cliffShadow.withOpacity(0.35);
+    final fireCenter = Offset(w * 0.28, h * 0.9);
+    paint.color = CalmPalette.cliffShadow.withOpacity(0.35);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: fireCenter.translate(-w * 0.02, 0), width: w * 0.06, height: w * 0.015),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: fireCenter.translate(w * 0.02, w * 0.005), width: w * 0.055, height: w * 0.014),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    paint.color = CalmPalette.cliffShadow.withOpacity(0.2);
+    canvas.drawOval(Rect.fromCenter(center: fireCenter, width: w * 0.05, height: w * 0.02), paint);
+    if (isNight) {
+      paint.color = CalmPalette.lightWarm.withOpacity(0.55);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter, width: w * 0.07, height: w * 0.04), paint);
+      paint.color = CalmPalette.lightWarm.withOpacity(0.3);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter.translate(0, -w * 0.012), width: w * 0.1, height: w * 0.05), paint);
+    } else if (isWinter) {
+      paint.color = CalmPalette.snowWhite.withOpacity(0.6);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter, width: w * 0.06, height: w * 0.025), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StargazerHutPainter oldDelegate) {
+    return lightOpacity != oldDelegate.lightOpacity ||
+        isNight != oldDelegate.isNight ||
+        isSakura != oldDelegate.isSakura ||
+        isAutumn != oldDelegate.isAutumn ||
+        isWinter != oldDelegate.isWinter;
+  }
+}
+
+class StargazerTelescopeWidget extends StatelessWidget {
+  final double size;
+  final bool isNight;
+  final bool isWinter;
+
+  const StargazerTelescopeWidget({
+    super.key,
+    required this.size,
+    required this.isNight,
+    required this.isWinter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size * 0.8,
+      child: CustomPaint(
+        painter: _StargazerTelescopePainter(
+          isNight: isNight,
+          isWinter: isWinter,
+        ),
+      ),
+    );
+  }
+}
+
+class _StargazerTelescopePainter extends CustomPainter {
+  final bool isNight;
+  final bool isWinter;
+
+  const _StargazerTelescopePainter({
+    required this.isNight,
+    required this.isWinter,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final scopeColor = isNight ? CalmPalette.nightStargazerScope : CalmPalette.stargazerScope;
+    final tripodColor = isNight ? CalmPalette.nightStargazerTripod : CalmPalette.stargazerTripod;
+    final roofTint = isNight ? CalmPalette.nightStargazerRoofTint : CalmPalette.stargazerRoofTint;
+
+    const telescopeAngle = -0.48;
+    final telescopeOrigin = Offset(w * 0.74, h * 0.76);
+    canvas.save();
+    canvas.translate(telescopeOrigin.dx, telescopeOrigin.dy);
+    canvas.rotate(telescopeAngle);
+    paint.color = scopeColor;
+    final bodyRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, h * 0.012, w * 0.24, h * 0.046),
+      Radius.circular(w * 0.03),
+    );
+    canvas.drawRRect(bodyRect, paint);
+    paint.color = scopeColor.withOpacity(0.9);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.22, 0, w * 0.08, h * 0.07),
+        Radius.circular(w * 0.035),
+      ),
+      paint,
+    );
+    paint.color = scopeColor.withOpacity(0.75);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.17, h * 0.02, w * 0.035, h * 0.03),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    paint.color = scopeColor.withOpacity(0.7);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, h * 0.02, w * 0.045, h * 0.03),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    paint.color = roofTint.withOpacity(isNight ? 0.35 : 0.45);
+    canvas.drawCircle(Offset(w * 0.3, h * 0.035), w * 0.03, paint);
+    if (isWinter) {
+      paint.color = CalmPalette.snowWhite.withOpacity(0.18);
+      canvas.drawOval(Rect.fromLTWH(w * 0.06, -h * 0.002, w * 0.16, h * 0.015), paint);
+    }
+    canvas.restore();
+
+    paint.color = tripodColor;
+    final jointLocal = Offset(w * 0.12, h * 0.07);
+    final joint = Offset(
+      telescopeOrigin.dx + (jointLocal.dx * math.cos(telescopeAngle)) - (jointLocal.dy * math.sin(telescopeAngle)),
+      telescopeOrigin.dy + (jointLocal.dx * math.sin(telescopeAngle)) + (jointLocal.dy * math.cos(telescopeAngle)),
+    );
+    final legPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.008
+      ..strokeCap = StrokeCap.round
+      ..color = tripodColor;
+    canvas.drawCircle(joint, w * 0.01, paint);
+    canvas.drawLine(joint, joint.translate(-w * 0.035, h * 0.08), legPaint);
+    canvas.drawLine(joint, joint.translate(w * 0.02, h * 0.085), legPaint);
+    canvas.drawLine(joint, joint.translate(-w * 0.005, h * 0.095), legPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _StargazerTelescopePainter oldDelegate) {
+    return isNight != oldDelegate.isNight || isWinter != oldDelegate.isWinter;
   }
 }
 
