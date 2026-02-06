@@ -504,15 +504,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                                 MusicService.instance.switchTrack(MusicTrack.rainy);
                                                 MusicService.instance.playCurrentTrack();
                                                 break;
-                                              case 'Forest Vibes':
-                                                MusicService.instance.switchTrack(MusicTrack.forest);
-                                                MusicService.instance.playCurrentTrack();
-                                                break;
-                                              case 'None':
-                                              default:
-                                                // No music selected, do nothing
-                                                break;
-                                            }
+                                               case 'Forest Vibes':
+                                                 MusicService.instance.switchTrack(MusicTrack.forest);
+                                                 MusicService.instance.playCurrentTrack();
+                                                 break;
+                                               case 'Night Vibes':
+                                                 MusicService.instance.switchTrack(MusicTrack.night);
+                                                 MusicService.instance.playCurrentTrack();
+                                                 break;
+                                               case 'Snow Vibes':
+                                                 MusicService.instance.switchTrack(MusicTrack.snow);
+                                                 MusicService.instance.playCurrentTrack();
+                                                 break;
+                                               case 'Ocean Vibes':
+                                                 MusicService.instance.switchTrack(MusicTrack.ocean);
+                                                 MusicService.instance.playCurrentTrack();
+                                                 break;
+                                               case 'None':
+                                               default:
+                                                 // No music selected, do nothing
+                                                 break;
+                                             }
                                           }
                                         },
                                       ),

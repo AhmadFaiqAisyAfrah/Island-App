@@ -6,6 +6,9 @@ import 'package:flutter/foundation.dart';
 enum MusicTrack {
   rainy,
   forest,
+  night,
+  snow,
+  ocean,
 }
 
 /// Singleton service for managing background music playback.
@@ -76,6 +79,12 @@ class MusicService {
         return 'audio/rainy_vibes.ogg';
       case MusicTrack.forest:
         return 'audio/forest_vibes.ogg';
+      case MusicTrack.night:
+        return 'audio/night_vibes.ogg';
+      case MusicTrack.snow:
+        return 'audio/snow_vibes.ogg';
+      case MusicTrack.ocean:
+        return 'audio/ocean_vibes.ogg';
     }
   }
 

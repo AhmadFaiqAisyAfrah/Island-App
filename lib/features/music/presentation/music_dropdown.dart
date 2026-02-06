@@ -109,6 +109,48 @@ class _MusicDropdownState extends State<MusicDropdown> {
                     ],
                   ),
                 ),
+                DropdownMenuItem(
+                  value: 'Night Vibes',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.nights_stay,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Night Vibes'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'Snow Vibes',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.ac_unit,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Snow Vibes'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'Ocean Vibes',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.water,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Ocean Vibes'),
+                    ],
+                  ),
+                ),
               ],
               onChanged: (value) {
                 if (value == null) return;
