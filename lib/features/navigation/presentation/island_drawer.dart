@@ -191,6 +191,12 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
         color: const Color(0xFFD6DEE6),
         preview: const HousePreview(house: AppHouse.stargazerHut),
       ),
+      _ThemeItem(
+        label: "Forest Cabin",
+        house: AppHouse.forestCabin,
+        color: const Color(0xFFD4C4B0),
+        preview: const HousePreview(house: AppHouse.forestCabin),
+      ),
     ];
 
     return AlertDialog(
@@ -425,6 +431,16 @@ class HousePreview extends StatelessWidget {
                         size: houseSize,
                         lightIntensity: 0.0,
                         isNight: false,
+                        isSakura: false,
+                        isAutumn: false,
+                        isWinter: false,
+                      )
+                : house == AppHouse.forestCabin
+                    ? ForestCabinWidget(
+                        size: houseSize,
+                        lightIntensity: 0.0,
+                        isNight: false,
+                        isFocusing: false,
                         isSakura: false,
                         isAutumn: false,
                         isWinter: false,

@@ -27,6 +27,7 @@ enum AppHouse {
   defaultHouse,
   adventureHouse,
   stargazerHut,
+  forestCabin,
 }
 
 @immutable

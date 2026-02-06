@@ -79,6 +79,20 @@ class CalmPalette {
   static const Color nightStargazerScope = Color(0xFF7E8C9A);
   static const Color nightStargazerTripod = Color(0xFF8B7461);
 
+  // Forest Cabin (Day)
+  static const Color cabinWall = Color(0xFF8D6E63);
+  static const Color cabinRoof = Color(0xFF5D4037);
+  static const Color cabinDoor = Color(0xFF4E342E);
+  static const Color cabinWindow = Color(0xFF6D4C41);
+  static const Color cabinWoodDark = Color(0xFF3E2723);
+
+  // Forest Cabin (Night)
+  static const Color nightCabinWall = Color(0xFF6D4C41);
+  static const Color nightCabinRoof = Color(0xFF4E342E);
+  static const Color nightCabinDoor = Color(0xFF3E2723);
+  static const Color nightCabinWindow = Color(0xFF5D4037);
+  static const Color nightCabinWoodDark = Color(0xFF2D1B18);
+
   // Nature Details (Night)
   static const Color nightFoliage = Color(0xFF909A85); // Matches nightGrassBase
   static const Color nightFoliageSakura = Color(0xFFCDB1B1); // Dimmed Pink 
@@ -290,6 +304,7 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
     final bool isWinter = widget.themeState.season == AppSeason.winter;
     final bool isAdventureHouse = widget.themeState.house == AppHouse.adventureHouse;
     final bool isStargazerHut = widget.themeState.house == AppHouse.stargazerHut;
+    final bool isForestCabin = widget.themeState.house == AppHouse.forestCabin;
 
     // SHADOW LOGIC
     // Day: Neutral grounding shadow (Grey-Brown)
@@ -345,37 +360,47 @@ class _IslandBaseLayerState extends State<IslandBaseLayer> with TickerProviderSt
              ),
           ),
           
-          // 2. HOUSE
-          Positioned(
-            bottom: w * 0.48, 
-            left: w * 0.05,  
-            child: isAdventureHouse
-                ? AdventureHouseWidget(
-                    size: w * 0.55,
-                    lightIntensity: lightIntensity,
-                    isNight: isNight,
-                    isSakura: isSakura,
-                    isAutumn: isAutumn,
-                    isWinter: isWinter,
-                  )
-                : isStargazerHut
-                    ? StargazerHutWidget(
-                        size: w * 0.52,
-                        lightIntensity: lightIntensity,
-                        isNight: isNight,
-                        isSakura: isSakura,
-                        isAutumn: isAutumn,
-                        isWinter: isWinter,
-                      )
-                    : CalmHouseWidget(
-                        size: w * 0.50, 
-                        lightIntensity: lightIntensity,
-                        isSakura: isSakura,
-                        isAutumn: isAutumn,
-                        isWinter: isWinter,
-                        isNight: isNight,
-                      ), 
-          ),
+           // 2. HOUSE
+           Positioned(
+             bottom: w * 0.48, 
+             left: w * 0.05,  
+             child: isAdventureHouse
+                 ? AdventureHouseWidget(
+                     size: w * 0.55,
+                     lightIntensity: lightIntensity,
+                     isNight: isNight,
+                     isSakura: isSakura,
+                     isAutumn: isAutumn,
+                     isWinter: isWinter,
+                   )
+                 : isStargazerHut
+                     ? StargazerHutWidget(
+                         size: w * 0.52,
+                         lightIntensity: lightIntensity,
+                         isNight: isNight,
+                         isSakura: isSakura,
+                         isAutumn: isAutumn,
+                         isWinter: isWinter,
+                       )
+                 : isForestCabin
+                     ? ForestCabinWidget(
+                         size: w * 0.54,
+                         lightIntensity: lightIntensity,
+                         isNight: isNight,
+                         isFocusing: widget.isFocusing,
+                         isSakura: isSakura,
+                         isAutumn: isAutumn,
+                         isWinter: isWinter,
+                       )
+                     : CalmHouseWidget(
+                         size: w * 0.50, 
+                         lightIntensity: lightIntensity,
+                         isSakura: isSakura,
+                         isAutumn: isAutumn,
+                         isWinter: isWinter,
+                         isNight: isNight,
+                       ), 
+           ),
 
           // 2.5 GARDEN LAMP (New)
           Positioned(
@@ -1282,6 +1307,395 @@ class _StargazerHutPainter extends CustomPainter {
   bool shouldRepaint(covariant _StargazerHutPainter oldDelegate) {
     return lightOpacity != oldDelegate.lightOpacity ||
         isNight != oldDelegate.isNight ||
+        isSakura != oldDelegate.isSakura ||
+        isAutumn != oldDelegate.isAutumn ||
+        isWinter != oldDelegate.isWinter;
+  }
+}
+
+// Forest Cabin Widget
+class ForestCabinWidget extends StatelessWidget {
+  final double size;
+  final double lightIntensity;
+  final bool isNight;
+  final bool isFocusing;
+  final bool isSakura;
+  final bool isAutumn;
+  final bool isWinter;
+
+  const ForestCabinWidget({
+    super.key,
+    required this.size,
+    required this.lightIntensity,
+    required this.isNight,
+    required this.isFocusing,
+    this.isSakura = false,
+    this.isAutumn = false,
+    this.isWinter = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size * 0.75,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0.0, end: lightIntensity),
+        duration: const Duration(milliseconds: 1200),
+        builder: (context, lightOpacity, child) {
+          return CustomPaint(
+            painter: _ForestCabinPainter(
+              lightOpacity: lightOpacity,
+              isNight: isNight,
+              isFocusing: isFocusing,
+              isSakura: isSakura,
+              isAutumn: isAutumn,
+              isWinter: isWinter,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ForestCabinPainter extends CustomPainter {
+  final double lightOpacity;
+  final bool isNight;
+  final bool isFocusing;
+  final bool isSakura;
+  final bool isAutumn;
+  final bool isWinter;
+
+  _ForestCabinPainter({
+    required this.lightOpacity,
+    required this.isNight,
+    required this.isFocusing,
+    required this.isSakura,
+    required this.isAutumn,
+    required this.isWinter,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    // Colors
+    final wallColor = isNight ? CalmPalette.nightCabinWall : CalmPalette.cabinWall;
+    final roofColor = isNight ? CalmPalette.nightCabinRoof : CalmPalette.cabinRoof;
+    final doorColor = isNight ? CalmPalette.nightCabinDoor : CalmPalette.cabinDoor;
+    final woodDark = isNight ? CalmPalette.nightCabinWoodDark : CalmPalette.cabinWoodDark;
+
+    // === 1. BACK TREES (Behind cabin) ===
+    _drawPineTree(canvas, w * 0.15, h * 0.85, w * 0.25, h * 0.55, true);
+    _drawPineTree(canvas, w * 0.82, h * 0.88, w * 0.22, h * 0.50, true);
+
+    // === 2. CABIN BODY (A-frame) ===
+    // Main A-frame structure
+    final cabinPath = Path();
+    cabinPath.moveTo(w * 0.25, h * 0.85); // Bottom left
+    cabinPath.lineTo(w * 0.50, h * 0.25); // Peak
+    cabinPath.lineTo(w * 0.75, h * 0.85); // Bottom right
+    cabinPath.close();
+    paint.color = wallColor;
+    canvas.drawPath(cabinPath, paint);
+
+    // Roof overhang (darker triangle on top)
+    final roofPath = Path();
+    roofPath.moveTo(w * 0.20, h * 0.50); // Left overhang
+    roofPath.lineTo(w * 0.50, h * 0.18); // Peak
+    roofPath.lineTo(w * 0.80, h * 0.50); // Right overhang
+    roofPath.lineTo(w * 0.75, h * 0.55); // Right inner
+    roofPath.lineTo(w * 0.50, h * 0.25); // Peak inner
+    roofPath.lineTo(w * 0.25, h * 0.55); // Left inner
+    roofPath.close();
+    paint.color = roofColor;
+    canvas.drawPath(roofPath, paint);
+
+    // Wood texture lines (subtle)
+    paint.color = woodDark.withOpacity(0.3);
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = w * 0.002;
+    for (var i = 0; i < 6; i++) {
+      final t = (i + 1) / 7;
+      final leftX = w * 0.25 + (w * 0.25 * t);
+      final rightX = w * 0.75 - (w * 0.25 * t);
+      final y = h * 0.85 - (h * 0.60 * t);
+      canvas.drawLine(Offset(leftX, y), Offset(rightX, y), paint);
+    }
+    paint.style = PaintingStyle.fill;
+
+    // === 3. DOOR (Centered, front-facing) ===
+    final doorRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.44, h * 0.58, w * 0.12, h * 0.27),
+      Radius.circular(w * 0.01),
+    );
+    paint.color = doorColor;
+    canvas.drawRRect(doorRect, paint);
+
+    // Door frame
+    paint.color = woodDark;
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = w * 0.003;
+    canvas.drawRRect(doorRect, paint);
+    paint.style = PaintingStyle.fill;
+
+    // Door knob
+    paint.color = CalmPalette.lightWarm.withOpacity(0.6);
+    canvas.drawCircle(Offset(w * 0.535, h * 0.72), w * 0.008, paint);
+
+    // Door ground spill light (night)
+    if (lightOpacity > 0) {
+      paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.4);
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
+      canvas.drawOval(Rect.fromLTWH(w * 0.42, h * 0.82, w * 0.16, h * 0.06), paint);
+      paint.maskFilter = null;
+    }
+
+    // === 4. WINDOW (Small, beside door) ===
+    final windowRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.58, h * 0.52, w * 0.10, h * 0.12),
+      Radius.circular(w * 0.02),
+    );
+    
+    // Window color based on time
+    final Color windowColor = Color.lerp(
+      Colors.white.withOpacity(0.25),
+      CalmPalette.lightWarm,
+      lightOpacity,
+    )!;
+    
+    paint.color = windowColor.withOpacity(0.4 + (lightOpacity * 0.4));
+    canvas.drawRRect(windowRect, paint);
+
+    // Window frame
+    paint.color = woodDark;
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = w * 0.003;
+    canvas.drawRRect(windowRect, paint);
+    
+    // Window cross
+    paint.style = PaintingStyle.fill;
+    paint.strokeWidth = w * 0.002;
+    canvas.drawLine(Offset(w * 0.63, h * 0.52), Offset(w * 0.63, h * 0.64), paint);
+    canvas.drawLine(Offset(w * 0.58, h * 0.58), Offset(w * 0.68, h * 0.58), paint);
+
+    // Window glow (night)
+    if (lightOpacity > 0) {
+      paint.color = CalmPalette.lightWarm.withOpacity(lightOpacity * 0.5);
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 10.0);
+      canvas.drawRRect(windowRect.inflate(w * 0.02), paint);
+      paint.maskFilter = null;
+    }
+
+    // === 5. FRONT TREES (Beside cabin) ===
+    _drawPineTree(canvas, w * 0.05, h * 0.90, w * 0.20, h * 0.45, false);
+    _drawPineTree(canvas, w * 0.90, h * 0.92, w * 0.18, h * 0.40, false);
+
+    // === 6. SNOW PILES (Winter only, at base) ===
+    if (isWinter) {
+      final snowPaint = Paint()..color = CalmPalette.snowWhite.withOpacity(0.85);
+      // Snow at cabin base
+      canvas.drawOval(Rect.fromLTWH(w * 0.22, h * 0.82, w * 0.18, h * 0.08), snowPaint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.52, h * 0.83, w * 0.28, h * 0.07), snowPaint);
+      // Snow piles around
+      canvas.drawOval(Rect.fromLTWH(w * 0.08, h * 0.85, w * 0.12, h * 0.06), snowPaint..color = CalmPalette.snowWhite.withOpacity(0.7));
+      canvas.drawOval(Rect.fromLTWH(w * 0.78, h * 0.86, w * 0.15, h * 0.05), snowPaint);
+    }
+
+    // === 7. CAMPFIRE (Must be after snow - on top!) ===
+    final fireCenter = Offset(w * 0.22, h * 0.88);
+    
+    // Logs
+    paint.color = woodDark.withOpacity(0.6);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: fireCenter.translate(-w * 0.015, h * 0.01), width: w * 0.06, height: w * 0.012),
+        Radius.circular(w * 0.01),
+      ),
+      paint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: fireCenter.translate(w * 0.015, h * 0.015), width: w * 0.055, height: w * 0.011),
+        Radius.circular(w * 0.01),
+      ),
+      paint,
+    );
+
+    // Fire glow (night + focusing)
+    if (isNight && isFocusing) {
+      // Outer glow
+      paint.color = CalmPalette.lightWarm.withOpacity(0.35 + (lightOpacity * 0.15));
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 20.0);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter.translate(0, -h * 0.02), width: w * 0.12, height: w * 0.08), paint);
+      
+      // Inner glow
+      paint.color = CalmPalette.lightWarm.withOpacity(0.55 + (lightOpacity * 0.2));
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 10.0);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter, width: w * 0.07, height: w * 0.04), paint);
+      paint.maskFilter = null;
+      
+      // Fire core
+      paint.color = const Color(0xFFFF6F00).withOpacity(0.8);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter.translate(0, -h * 0.005), width: w * 0.035, height: w * 0.025), paint);
+    } else if (isWinter && !isNight) {
+      // Snow on fire pit during winter day
+      paint.color = CalmPalette.snowWhite.withOpacity(0.5);
+      canvas.drawOval(Rect.fromCenter(center: fireCenter, width: w * 0.05, height: w * 0.025), paint);
+    }
+
+    // === 8. STRING LIGHTS (Last - above everything) ===
+    // Wire from cabin roof to front tree
+    final wirePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.002
+      ..strokeCap = StrokeCap.round
+      ..color = (isNight ? CalmPalette.nightDeepWater : CalmPalette.cliffShadow).withOpacity(0.35);
+    
+    // Wire path (cabin to left front tree)
+    final wirePath = Path()
+      ..moveTo(w * 0.25, h * 0.55) // Cabin roof left edge
+      ..quadraticBezierTo(w * 0.15, h * 0.62, w * 0.08, h * 0.50); // To left front tree
+    canvas.drawPath(wirePath, wirePaint);
+
+    // Bulbs along wire
+    final bulbColor = isNight
+        ? CalmPalette.lightWarm.withOpacity(0.8)
+        : CalmPalette.cabinWindow.withOpacity(0.25);
+    
+    paint.color = bulbColor;
+    final bulbPoints = [
+      Offset(w * 0.22, h * 0.56),
+      Offset(w * 0.18, h * 0.58),
+      Offset(w * 0.14, h * 0.56),
+      Offset(w * 0.10, h * 0.53),
+    ];
+    
+    for (final point in bulbPoints) {
+      canvas.drawCircle(point, w * 0.01, paint);
+      if (isNight) {
+        // Glow around bulb
+        paint.color = CalmPalette.lightWarm.withOpacity(0.25);
+        canvas.drawCircle(point, w * 0.025, paint);
+        paint.color = bulbColor;
+      }
+    }
+
+    // Seasonal scatter on ground
+    if (isSakura) {
+      paint.color = CalmPalette.sakuraLight.withOpacity(0.75);
+      canvas.drawOval(Rect.fromLTWH(w * 0.30, h * 0.88, w * 0.03, w * 0.02), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.55, h * 0.90, w * 0.028, w * 0.018), paint);
+      paint.color = CalmPalette.sakuraDark.withOpacity(0.6);
+      canvas.drawOval(Rect.fromLTWH(w * 0.42, h * 0.87, w * 0.026, w * 0.016), paint);
+    } else if (isAutumn) {
+      paint.color = CalmPalette.autumnLeafLight.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.28, h * 0.89, w * 0.03, w * 0.018), paint);
+      canvas.drawOval(Rect.fromLTWH(w * 0.48, h * 0.91, w * 0.028, w * 0.016), paint);
+      paint.color = CalmPalette.autumnLeafDark.withOpacity(0.7);
+      canvas.drawOval(Rect.fromLTWH(w * 0.38, h * 0.88, w * 0.03, w * 0.018), paint);
+    }
+  }
+
+  void _drawPineTree(Canvas canvas, double x, double y, double width, double height, bool isBack) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    
+    // Trunk
+    final trunkHeight = height * 0.25;
+    final trunkWidth = width * 0.12;
+    paint.color = isNight 
+        ? CalmPalette.cliffShadow.withOpacity(isBack ? 0.6 : 1.0)
+        : CalmPalette.cliffShadow.withOpacity(isBack ? 0.7 : 1.0);
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(x, y - trunkHeight * 0.5), width: trunkWidth, height: trunkHeight),
+      paint,
+    );
+
+    // Foliage color based on season
+    // NOTE: Pine trees stay green in Sakura season (only deciduous trees turn pink)
+    Color foliageColor;
+    if (isAutumn) {
+      foliageColor = isNight 
+          ? CalmPalette.autumnLeafLight.withOpacity(0.7) 
+          : CalmPalette.autumnLeafLight;
+    } else if (isWinter) {
+      foliageColor = isNight 
+          ? CalmPalette.pineGreen.withOpacity(0.8) 
+          : CalmPalette.pineGreen;
+    } else {
+      foliageColor = isNight 
+          ? CalmPalette.nightFoliage 
+          : CalmPalette.grassHighlight;
+    }
+
+    // Apply darkness for back trees
+    if (isBack) {
+      foliageColor = foliageColor.withOpacity(0.7);
+    }
+
+    paint.color = foliageColor;
+
+    // Pine tree tiers (3 triangles)
+    // Bottom tier
+    final bottomPath = Path();
+    bottomPath.moveTo(x - width * 0.4, y - trunkHeight * 0.8);
+    bottomPath.lineTo(x + width * 0.4, y - trunkHeight * 0.8);
+    bottomPath.lineTo(x, y - height * 0.55);
+    bottomPath.close();
+    canvas.drawPath(bottomPath, paint);
+
+    // Middle tier
+    final middlePath = Path();
+    middlePath.moveTo(x - width * 0.32, y - height * 0.45);
+    middlePath.lineTo(x + width * 0.32, y - height * 0.45);
+    middlePath.lineTo(x, y - height * 0.75);
+    middlePath.close();
+    canvas.drawPath(middlePath, paint);
+
+    // Top tier
+    final topPath = Path();
+    topPath.moveTo(x - width * 0.22, y - height * 0.65);
+    topPath.lineTo(x + width * 0.22, y - height * 0.65);
+    topPath.lineTo(x, y - height);
+    topPath.close();
+    canvas.drawPath(topPath, paint);
+
+    // Snow caps for winter
+    if (isWinter) {
+      final snowPaint = Paint()..color = CalmPalette.snowWhite;
+      
+      // Top cap
+      final topSnow = Path();
+      topSnow.moveTo(x - width * 0.08, y - height * 0.82);
+      topSnow.lineTo(x + width * 0.08, y - height * 0.82);
+      topSnow.lineTo(x, y - height);
+      topSnow.close();
+      canvas.drawPath(topSnow, snowPaint);
+
+      // Middle cap
+      final midSnow = Path();
+      midSnow.moveTo(x - width * 0.12, y - height * 0.62);
+      midSnow.lineTo(x + width * 0.12, y - height * 0.62);
+      midSnow.lineTo(x, y - height * 0.75);
+      midSnow.close();
+      canvas.drawPath(midSnow, snowPaint);
+
+      // Snow at base
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(x, y - trunkHeight * 0.2), width: width * 0.2, height: width * 0.08),
+        snowPaint..color = CalmPalette.snowWhite.withOpacity(0.9),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ForestCabinPainter oldDelegate) {
+    return lightOpacity != oldDelegate.lightOpacity ||
+        isNight != oldDelegate.isNight ||
+        isFocusing != oldDelegate.isFocusing ||
         isSakura != oldDelegate.isSakura ||
         isAutumn != oldDelegate.isAutumn ||
         isWinter != oldDelegate.isWinter;
