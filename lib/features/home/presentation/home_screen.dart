@@ -18,11 +18,10 @@ import 'star_scatter.dart';
 import 'dart:math' as math;
 import '../../shop/data/currency_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
-import '../../music/presentation/music_button.dart';
 import '../../archipelago/data/archipelago_provider.dart';
 import '../../tags/presentation/tags_provider.dart';
-import '../../music/presentation/music_button.dart';
-import '../../music/data/audio_service.dart'; // Import Provider
+import '../../music/presentation/music_dropdown.dart';
+import '../../../services/music_service.dart';
 import '../../tags/presentation/tag_selector.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -38,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Timer? _quoteRotationTimer;
   DateTime? _pausedAt;
   bool _showFocusHint = false;
+  String _selectedMusic = 'None'; // Track selected music: None, Rainy Vibes, Forest Vibes
 
   @override
   void initState() {
@@ -124,12 +124,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
          });
       }
       // STOP/PAUSE FOCUS
-      else if (previous?.status == TimerStatus.running && next.status != TimerStatus.running) {
-         _stopFocusRotation();
-         if (next.status == TimerStatus.idle) {
-            setState(() => _currentQuote = QuotesRepository.getDashboardHeadline());
-         }
-      }
+       else if (previous?.status == TimerStatus.running && next.status != TimerStatus.running) {
+          _stopFocusRotation();
+          // Stop music when focus stops
+          MusicService.instance.stop();
+          if (next.status == TimerStatus.idle) {
+             setState(() => _currentQuote = QuotesRepository.getDashboardHeadline());
+          }
+       }
 
       if (next.status == TimerStatus.completed) {
         // Calculate Reward (1 Coin per minute)
@@ -425,9 +427,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                             // OPTICAL CENTER ALIGNMENT
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // TAG SELECTOR (Intention) - Fades out when focusing
-                            TagSelector(isFocusing: isFocusing),
-                            if (!isFocusing && _showFocusHint) ...[
+                             // TAG SELECTOR (Intention) - Fades out when focusing
+                             TagSelector(isFocusing: isFocusing),
+                             
+                              // MUSIC DROPDOWN (None / Rainy Vibes / Forest Vibes)
+                              if (!isFocusing) ...[
+                                const SizedBox(height: 12),
+                                MusicDropdown(
+                                  initialValue: _selectedMusic,
+                                  onMusicSelected: (music) {
+                                    setState(() {
+                                      _selectedMusic = music;
+                                    });
+                                  },
+                                ),
+                              ],
+                             
+                             if (!isFocusing && _showFocusHint) ...[
                               const SizedBox(height: 16),
                               GlassHint(
                                 text: 'Set your time. Let the island breathe with you.',
@@ -474,15 +490,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                         themeState: themeState,
                                         onTap: () {
                                           if (isFocusing) {
+                                            // STOP FOCUS
                                             ref.read(timerProvider.notifier).reset();
-                                            // AUDIO FROZEN FOR MVP
-                                            // ref.read(audioServiceProvider).disable();
+                                            // Stop music when focus ends
+                                            MusicService.instance.stop();
                                           } else {
+                                            // START FOCUS
                                             ref.read(timerProvider.notifier).start();
-                                            // AUDIO FROZEN FOR MVP
-                                            // if (ref.read(audioEnabledProvider)) {
-                                            //    ref.read(audioServiceProvider).enable();
-                                            // }
+                                            // Start music based on selection
+                                            MusicService.instance.stop(); // Reset first
+                                            switch (_selectedMusic) {
+                                              case 'Rainy Vibes':
+                                                MusicService.instance.switchTrack(MusicTrack.rainy);
+                                                MusicService.instance.playCurrentTrack();
+                                                break;
+                                              case 'Forest Vibes':
+                                                MusicService.instance.switchTrack(MusicTrack.forest);
+                                                MusicService.instance.playCurrentTrack();
+                                                break;
+                                              case 'None':
+                                              default:
+                                                // No music selected, do nothing
+                                                break;
+                                            }
                                           }
                                         },
                                       ),

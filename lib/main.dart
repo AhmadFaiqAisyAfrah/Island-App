@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/archipelago/data/archipelago_repository.dart';
 import 'features/archipelago/data/archipelago_provider.dart';
 import 'core/data/shared_preferences_provider.dart';
+import 'services/music_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,10 @@ void main() async {
   
   final prefs = await SharedPreferences.getInstance();
   final repository = ArchipelagoRepository(prefs);
+  
+  // Initialize MusicService (singleton, non-blocking)
+  // Audio will be preloaded and ready for playback
+  MusicService().init();
 
   runApp(
     ProviderScope(
