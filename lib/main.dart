@@ -24,6 +24,9 @@ void main() async {
 
   // Initialize Notification Service
   await NotificationService().init();
+  
+  // Schedule daily reflection notification if conditions met
+  await NotificationService().rescheduleDailyReflectionIfNeeded();
 
   runApp(
     ProviderScope(

@@ -83,6 +83,10 @@ class TimerNotifier extends StateNotifier<TimerState> {
     
     // Show focus completion notification if enabled
     NotificationService().showFocusCompleted();
+    
+    // Track focus session and reschedule daily reflection if needed
+    NotificationService().incrementTodayFocusCount();
+    NotificationService().rescheduleDailyReflectionIfNeeded();
   }
 
   @override
