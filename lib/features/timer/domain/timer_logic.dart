@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../services/notification_service.dart';
 
 enum TimerStatus { idle, running, paused, completed }
 
@@ -79,7 +80,9 @@ class TimerNotifier extends StateNotifier<TimerState> {
   void _complete() {
     _ticker?.cancel();
     state = state.copyWith(status: TimerStatus.completed);
-    // MVP: No points awarded, just state change.
+    
+    // Show focus completion notification if enabled
+    NotificationService().showFocusCompleted();
   }
 
   @override

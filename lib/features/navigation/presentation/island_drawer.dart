@@ -7,6 +7,7 @@ import '../../../../core/data/feature_discovery_provider.dart';
 import '../../../../core/widgets/glass_hint.dart';
 import '../../shop/presentation/shop_screen.dart';
 import '../../archipelago/presentation/archipelago_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../../../../services/auth_service.dart';
 import '../../island/presentation/layers/island_base_layer.dart';
 
@@ -71,6 +72,17 @@ class IslandDrawer extends ConsumerWidget {
                   Navigator.push(
                     context, 
                     MaterialPageRoute(builder: (_) => const ShopScreen())
+                  );
+                },
+              ),
+              _DrawerItem(
+                label: "Settings",
+                isActive: false,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen())
                   );
                 },
               ),

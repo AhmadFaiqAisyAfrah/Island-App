@@ -13,6 +13,7 @@ import '../../island/presentation/island_visual_stack.dart';
 import '../../island/presentation/layers/island_base_layer.dart';
 import '../../onboarding/data/onboarding_storage.dart';
 import '../../timer/domain/timer_logic.dart';
+import '../../../services/notification_service.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -48,6 +49,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         Color(0xFFF2E6D8),
         Color(0xFFE2EBEE),
         Color(0xFFCBD9DF),
+      ],
+    ),
+    _OnboardingSlide(
+      title: 'Gentle Notifications',
+      subtitle: 'Island can quietly let you know\nwhen a session ends,\nor softly reflect at night.\n\nNothing urgent. Just presence.',
+      ctaLabel: null,
+      visualType: _OnboardingVisualType.notification,
+      gradient: [
+        Color(0xFFE8E6F3),
+        Color(0xFFE2EBEE),
+        Color(0xFFD4E0E6),
       ],
     ),
     _OnboardingSlide(
@@ -99,10 +111,55 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     );
   }
 
+  Future<void> _handleNotificationPermission({required bool allow}) async {
+    final notificationService = NotificationService();
+    
+    if (allow) {
+      // Request Android notification permission (shows system dialog on Android 13+)
+      final granted = await notificationService.requestPermission();
+      
+      if (granted) {
+        // Permission granted, move to next slide
+        if (_pageIndex < _slides.length - 1) {
+          _pageController.nextPage(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+      } else {
+        // Permission denied - open system settings so user can enable manually
+        await notificationService.openSystemSettings();
+        
+        // Don't auto-advance - let user come back after enabling in settings
+        // Check permission again when they return to the app
+        await Future.delayed(const Duration(seconds: 1));
+        final nowGranted = await notificationService.checkPermissionStatus();
+        if (nowGranted && _pageIndex < _slides.length - 1) {
+          _pageController.nextPage(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    } else {
+      // User chose "Not now" - save as disabled but mark as asked
+      await notificationService.setEnabled(false);
+      
+      // Move to next slide
+      if (_pageIndex < _slides.length - 1) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final slide = _slides[_pageIndex];
     final bool showIsland = slide.visualType == _OnboardingVisualType.invitation;
+    final bool isNotificationSlide = slide.visualType == _OnboardingVisualType.notification;
     final ThemeState islandTheme = const ThemeState(mode: AppThemeMode.night);
     final bool isNight = showIsland;
     final bgColors = showIsland ? _getBackgroundColors(islandTheme) : slide.gradient;
@@ -184,6 +241,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     onPageChanged: (index) => setState(() => _pageIndex = index),
                     itemBuilder: (context, index) {
                       final page = _slides[index];
+                      final isNotificationPage = page.visualType == _OnboardingVisualType.notification;
                       return _OnboardingPage(
                         slide: page,
                         showCta: index == _slides.length - 1,
@@ -191,6 +249,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         currentIndex: _pageIndex,
                         total: _slides.length,
                         isNight: isNight,
+                        isNotificationSlide: isNotificationPage,
+                        onAllowNotifications: () => _handleNotificationPermission(allow: true),
+                        onSkipNotifications: () => _handleNotificationPermission(allow: false),
                       );
                     },
                   ),
@@ -260,6 +321,9 @@ class _OnboardingPage extends StatelessWidget {
   final int currentIndex;
   final int total;
   final bool isNight;
+  final bool isNotificationSlide;
+  final VoidCallback? onAllowNotifications;
+  final VoidCallback? onSkipNotifications;
 
   const _OnboardingPage({
     required this.slide,
@@ -268,6 +332,9 @@ class _OnboardingPage extends StatelessWidget {
     required this.currentIndex,
     required this.total,
     required this.isNight,
+    this.isNotificationSlide = false,
+    this.onAllowNotifications,
+    this.onSkipNotifications,
   });
 
   @override
@@ -310,6 +377,21 @@ class _OnboardingPage extends StatelessWidget {
               _PrimaryButton(
                 label: slide.ctaLabel ?? 'Enter Island',
                 onTap: onCtaTap,
+              ),
+            ],
+            if (isNotificationSlide) ...[
+              const SizedBox(height: 18),
+              _PrimaryButton(
+                label: 'Allow notifications',
+                onTap: onAllowNotifications ?? () {},
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: onSkipNotifications ?? () {},
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textMain.withOpacity(0.65),
+                ),
+                child: const Text('Not now'),
               ),
             ],
           ],
@@ -425,7 +507,7 @@ class _NoisePainter extends CustomPainter {
   bool shouldRepaint(covariant _NoisePainter oldDelegate) => false;
 }
 
-enum _OnboardingVisualType { arrival, intention, invitation }
+enum _OnboardingVisualType { arrival, intention, notification, invitation }
 
 class _OnboardingSlide {
   final String title;
@@ -460,6 +542,7 @@ class _OnboardingVisual extends StatelessWidget {
           children: [
             if (type == _OnboardingVisualType.arrival) const _ArrivalVisual(),
             if (type == _OnboardingVisualType.intention) const _IntentionVisual(),
+            if (type == _OnboardingVisualType.notification) const _NotificationVisual(),
           ],
         ),
       ),
@@ -569,6 +652,48 @@ class _IntentionVisual extends StatelessWidget {
               color: Colors.white.withOpacity(0.7),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white.withOpacity(0.8), width: 1),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NotificationVisual extends StatelessWidget {
+  const _NotificationVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        _SoftOrb(color: const Color(0xFFE6E3F3), size: 260),
+        _SoftOrb(color: const Color(0xFFDDE7EA), size: 210),
+        Container(
+          width: 140,
+          height: 140,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.75),
+            border: Border.all(color: Colors.white.withOpacity(0.9), width: 1),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.notifications_outlined,
+            size: 56,
+            color: AppColors.textMain.withOpacity(0.5),
+          ),
+        ),
+        Positioned(
+          top: 56,
+          right: 62,
+          child: Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.islandGrass.withOpacity(0.6),
             ),
           ),
         ),
