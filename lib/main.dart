@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
-import 'features/splash/presentation/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +9,9 @@ import 'features/archipelago/data/archipelago_provider.dart';
 import 'core/data/shared_preferences_provider.dart';
 import 'services/music_service.dart';
 import 'services/notification_service.dart';
+import 'features/home/presentation/home_screen.dart';
+import 'features/onboarding/presentation/onboarding_screen.dart';
+import 'features/onboarding/data/onboarding_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,19 +30,27 @@ void main() async {
   // Schedule daily reflection notification if conditions met
   await NotificationService().rescheduleDailyReflectionIfNeeded();
 
+  // Determine initial screen based on onboarding status
+  final onboardingStorage = OnboardingStorage(prefs);
+  final initialHome = onboardingStorage.hasSeenOnboarding 
+      ? const HomeScreen() 
+      : const OnboardingScreen();
+
   runApp(
     ProviderScope(
       overrides: [
         archipelagoRepoProvider.overrideWithValue(repository),
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      child: const IslandApp(),
+      child: IslandApp(home: initialHome),
     ),
   );
 }
 
 class IslandApp extends StatelessWidget {
-  const IslandApp({super.key});
+  final Widget home;
+  
+  const IslandApp({super.key, required this.home});
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +60,7 @@ class IslandApp extends StatelessWidget {
       theme: AppTheme.pastelTheme,
       // Enforce the pastel theme for the MVP visual consistency
       themeMode: ThemeMode.light, 
-      home: const SplashScreen(),
+      home: home,
     );
   }
 }
