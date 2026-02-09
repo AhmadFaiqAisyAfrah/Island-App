@@ -146,16 +146,61 @@ class _AuthSection extends ConsumerWidget {
   }
 
   Widget _buildSignInButton(BuildContext context, AuthService authService) {
-    return ElevatedButton.icon(
-      onPressed: () => authService.signInWithGoogle(),
-      icon: const Icon(Icons.login, size: 18),
-      label: Text("Sign In", style: AppTextStyles.body.copyWith(fontSize: 14)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.islandGrass.withOpacity(0.2),
-        foregroundColor: AppColors.textMain,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Informational text
+        Text(
+          "save your progress 👇",
+          style: AppTextStyles.body.copyWith(
+            fontSize: 13,
+            color: AppColors.textSub,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Google Sign In button
+        GestureDetector(
+          onTap: () => authService.signInWithGoogle(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Google logo
+                Image.asset(
+                  'assets/icons/google_logo.png',
+                  width: 20,
+                  height: 20,
+                ),
+                const SizedBox(width: 12),
+                // Button text
+                Text(
+                  "Sign in with Google",
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 14,
+                    color: AppColors.textMain,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
