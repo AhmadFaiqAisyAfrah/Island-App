@@ -49,10 +49,40 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
+
+# Android Signing & Keystores (CRITICAL - NEVER COMMIT)
 key.properties
-*.jks
-*.keystore
+android/key.properties
+**/*.jks
+**/*.keystore
+android/app/keystore/
+
+# Environment Variables & Config (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+
+# API Keys & Secrets
+**/secrets.json
+**/secret.properties
+**/local.properties
 
 # Windows weird files
 nul
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# IDE specific (additional)
+*.code-workspace
+.vscode/settings.json
+.idea/libraries/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/shelf/
 
