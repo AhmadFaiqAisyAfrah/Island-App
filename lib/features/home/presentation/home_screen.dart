@@ -11,13 +11,15 @@ import '../../focus_guide/data/quotes_repository.dart';
 
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/data/feature_discovery_provider.dart';
+import '../../../../core/data/shared_preferences_provider.dart';
 import '../../../../core/widgets/glass_hint.dart';
 import 'distant_scenery.dart';
 import 'star_scatter.dart';
 
 import 'dart:math' as math;
-import '../../shop/data/currency_provider.dart';
 import '../../shop/presentation/shop_screen.dart';
+import '../../shop/presentation/widgets/island_coin_badge.dart';
+import '../../../../services/point_service.dart';
 import '../../archipelago/data/archipelago_provider.dart';
 import '../../tags/presentation/tags_provider.dart';
 import '../../music/presentation/music_dropdown.dart';
@@ -108,7 +110,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
     final themeState = ref.watch(themeProvider);
-    final coinBalance = ref.watch(currencyProvider); // Watch coins
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final pointService = PointService(prefs);
+    final coinBalance = pointService.getCurrentPoints(); // Unified coin source
     final isFocusing = timerState.status == TimerStatus.running;
     final isNight = themeState.mode == AppThemeMode.night;
     final bgColors = _getBackgroundColors(themeState);
@@ -138,8 +142,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         final int minutesFocused = next.initialDuration ~/ 60;
         final int reward = minutesFocused > 0 ? minutesFocused : 1;
         
-        // Award Coins
-        ref.read(currencyProvider.notifier).addCoins(reward);
+        // Award Coins using PointService (unified source)
+        pointService.addPoints(reward);
 
         // Archipelago: Save Daily Progress
         final selectedTag = ref.read(selectedTagProvider);
@@ -391,24 +395,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                               )
                                             ],
                                          ),
-                                         child: Row(
-                                           mainAxisSize: MainAxisSize.min,
-                                           children: [
-                                             const Text("🪙", style: TextStyle(
-                                               fontSize: 16, 
-                                             )),
-                                             const SizedBox(width: 8),
-                                             Text(
-                                               "$coinBalance",
-                                               style: AppTextStyles.body.copyWith(
-                                                 color: AppColors.textMain, // Dark Slate for readability
-                                                 fontSize: 15,
-                                                 fontWeight: FontWeight.w600,
-                                                 height: 1.0,
-                                               ),
-                                             ),
-                                           ],
-                                         ),
+                                          child: IslandCoinBadge.compact(
+                                            amount: coinBalance,
+                                          ),
                                       ),
                                     ),
                                 ],
