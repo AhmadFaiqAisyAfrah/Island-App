@@ -18,7 +18,7 @@ import 'star_scatter.dart';
 
 import 'dart:math' as math;
 import '../../shop/presentation/shop_screen.dart';
-import '../../shop/presentation/widgets/island_coin_badge.dart';
+import '../../../../core/widgets/island_coin_icon.dart';
 import '../../../../services/point_service.dart';
 import '../../archipelago/data/archipelago_provider.dart';
 import '../../tags/presentation/tags_provider.dart';
@@ -395,8 +395,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                               )
                                             ],
                                          ),
-                                          child: IslandCoinBadge.compact(
-                                            amount: coinBalance,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const IslandCoinIcon(size: 22),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '$coinBalance',
+                                                style: AppTextStyles.body.copyWith(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.textMain,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                       ),
                                     ),

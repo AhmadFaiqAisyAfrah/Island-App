@@ -6,7 +6,7 @@ import '../../../../services/trial_service.dart';
 import '../../../../core/data/shared_preferences_provider.dart';
 import '../data/theme_catalog.dart';
 import '../../../domain/monetization/monetization.dart';
-import 'widgets/island_coin_badge.dart';
+import '../../../../core/widgets/island_coin_icon.dart';
 
 /// Shop Screen - Monetization Phase 2
 /// 
@@ -158,12 +158,29 @@ class _BalanceHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const IslandCoinLabel(
-            fontSize: 13,
+          Text(
+            'Your Island Coins',
+            style: AppTextStyles.body.copyWith(
+              fontSize: 13,
+              color: AppColors.textSub,
+            ),
           ),
           const SizedBox(height: 8),
-          IslandCoinBadge.large(
-            amount: points,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const IslandCoinIcon(size: 32),
+              const SizedBox(width: 8),
+              Text(
+                '$points',
+                style: AppTextStyles.heading.copyWith(
+                  fontSize: 32,
+                  color: AppColors.textMain,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -273,9 +290,34 @@ class _ThemeItemCard extends StatelessWidget {
                 if (item.accessType == ItemAccessType.free)
                   _AccessLabel(icon: Icons.check, text: "Free", color: AppColors.islandGrass)
                 else if (item.accessType == ItemAccessType.pointUnlock && item.pointCost != null)
-                  IslandCoinCost(
-                    cost: item.pointCost!,
-                    canAfford: canAfford,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: canAfford
+                          ? const Color(0xFFFFD700).withOpacity(0.15)
+                          : Colors.grey.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: canAfford
+                            ? const Color(0xFFFFD700).withOpacity(0.5)
+                            : Colors.grey.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IslandCoinIcon(size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${item.pointCost}',
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: canAfford ? const Color(0xFFFFA500) : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
                   )
                 else if (item.accessType == ItemAccessType.premiumPurchase)
                   _AccessLabel(
