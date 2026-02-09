@@ -45,39 +45,84 @@ class ShopScreen extends ConsumerWidget {
             _BalanceHeader(points: currentPoints),
             const SizedBox(height: 32),
 
-            // SEASONAL THEMES
-            _SectionTitle(title: "Seasonal Themes"),
+            // COIN BUNDLES (STATIC - NOT COLLAPSIBLE)
+            _SectionTitle(title: "Grow Your Island"),
+            const SizedBox(height: 4),
+            Text(
+              "Use coins to unlock themes, environments, and homes.",
+              style: AppTextStyles.body.copyWith(
+                fontSize: 12,
+                color: AppColors.textSub,
+              ),
+            ),
             const SizedBox(height: 16),
-            ...ThemeCatalog.seasonal.map((item) => _ThemeItemCard(
-              item: item,
-              currentPoints: currentPoints,
-              canShowTrial: canShowTrial,
-              isTrialActive: trialService.isTrialActiveFor(item.id),
-            )),
+            _CoinBundleCard(
+              coins: 200,
+              price: "IDR 19.000",
+              badge: "Good Start",
+              onBuy: () {},
+            ),
+            _CoinBundleCard(
+              coins: 500,
+              bonusCoins: 50,
+              price: "IDR 39.000",
+              badge: "Most Chosen",
+              onBuy: () {},
+            ),
+            _CoinBundleCard(
+              coins: 1000,
+              bonusCoins: 150,
+              price: "IDR 69.000",
+              subtext: "Best value for long-term focus",
+              onBuy: () {},
+            ),
+            _CoinBundleCard(
+              coins: 2500,
+              bonusCoins: 500,
+              price: "IDR 149.000",
+              subtext: "Support the development of Island 🌱",
+              onBuy: () {},
+            ),
+
+            const SizedBox(height: 32),
+
+            // COLLAPSIBLE SHOP SECTIONS
+            _CollapsibleSection(
+              title: "Seasonal Themes",
+              initiallyExpanded: false,
+              children: ThemeCatalog.seasonal.map((item) => _ThemeItemCard(
+                item: item,
+                currentPoints: currentPoints,
+                canShowTrial: canShowTrial,
+                isTrialActive: trialService.isTrialActiveFor(item.id),
+              )).toList(),
+            ),
             
-            const SizedBox(height: 32),
-
-            // ENVIRONMENTS
-            _SectionTitle(title: "Environments"),
             const SizedBox(height: 16),
-            ...ThemeCatalog.environments.map((item) => _ThemeItemCard(
-              item: item,
-              currentPoints: currentPoints,
-              canShowTrial: canShowTrial,
-              isTrialActive: trialService.isTrialActiveFor(item.id),
-            )),
 
-            const SizedBox(height: 32),
+            _CollapsibleSection(
+              title: "Environments",
+              initiallyExpanded: false,
+              children: ThemeCatalog.environments.map((item) => _ThemeItemCard(
+                item: item,
+                currentPoints: currentPoints,
+                canShowTrial: canShowTrial,
+                isTrialActive: trialService.isTrialActiveFor(item.id),
+              )).toList(),
+            ),
 
-            // HOUSES
-            _SectionTitle(title: "Houses"),
             const SizedBox(height: 16),
-            ...ThemeCatalog.houses.map((item) => _ThemeItemCard(
-              item: item,
-              currentPoints: currentPoints,
-              canShowTrial: canShowTrial,
-              isTrialActive: trialService.isTrialActiveFor(item.id),
-            )),
+
+            _CollapsibleSection(
+              title: "Houses",
+              initiallyExpanded: false,
+              children: ThemeCatalog.houses.map((item) => _ThemeItemCard(
+                item: item,
+                currentPoints: currentPoints,
+                canShowTrial: canShowTrial,
+                isTrialActive: trialService.isTrialActiveFor(item.id),
+              )).toList(),
+            ),
 
             const SizedBox(height: 48),
 
@@ -156,33 +201,38 @@ class _BalanceHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.islandGrass.withOpacity(0.2)),
       ),
-      child: Column(
-        children: [
-          Text(
-            'Your Island Coins',
-            style: AppTextStyles.body.copyWith(
-              fontSize: 13,
-              color: AppColors.textSub,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const IslandCoinIcon(size: 32),
-              const SizedBox(width: 8),
-              Text(
-                '$points',
-                style: AppTextStyles.heading.copyWith(
-                  fontSize: 32,
-                  color: AppColors.textMain,
-                  letterSpacing: -0.5,
-                ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Your Island Coins',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 13,
+                color: AppColors.textSub,
               ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const IslandCoinIcon(size: 32),
+                const SizedBox(width: 8),
+                Text(
+                  '$points',
+                  style: AppTextStyles.heading.copyWith(
+                    fontSize: 32,
+                    color: AppColors.textMain,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -490,6 +540,241 @@ class _StatusBadge extends StatelessWidget {
           fontWeight: FontWeight.bold,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+class _CollapsibleSection extends StatefulWidget {
+  final String title;
+  final List<Widget> children;
+  final bool initiallyExpanded;
+
+  const _CollapsibleSection({
+    required this.title,
+    required this.children,
+    this.initiallyExpanded = false,
+  });
+
+  @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          // Section Header
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(16),
+              bottom: Radius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: AppTextStyles.subHeading.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.textSub,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Expandable Content
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: widget.children,
+              ),
+            ),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoinBundleCard extends StatelessWidget {
+  final int coins;
+  final int? bonusCoins;
+  final String price;
+  final String? badge;
+  final String? subtext;
+  final VoidCallback onBuy;
+
+  const _CoinBundleCard({
+    required this.coins,
+    this.bonusCoins,
+    required this.price,
+    this.badge,
+    this.subtext,
+    required this.onBuy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.islandGrass.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          // Coin Icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
+            ),
+            child: const Center(
+              child: IslandCoinIcon(size: 36),
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          // INFO
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '$coins',
+                      style: AppTextStyles.subHeading.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    if (bonusCoins != null) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '+$bonusCoins bonus',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.islandGrass,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  price,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                if (subtext != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtext!,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 11,
+                      color: AppColors.textSub,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // BADGE & BUTTON
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (badge != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.islandGrass.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    badge!,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.islandGrass,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              SizedBox(
+                width: 70,
+                child: ElevatedButton(
+                  onPressed: onBuy,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.islandGrass,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: const Text(
+                    "Buy",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

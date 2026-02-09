@@ -117,7 +117,7 @@ class _DrawerItem extends StatelessWidget {
         style: AppTextStyles.subHeading.copyWith(
           fontSize: 18,
           color: isActive ? AppColors.islandGrass : AppColors.textMain,
-          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
         ),
       ),
       onTap: onTap,
@@ -156,7 +156,7 @@ class _AuthSection extends ConsumerWidget {
           style: AppTextStyles.body.copyWith(
             fontSize: 13,
             color: AppColors.textSub,
-            fontWeight: FontWeight.normal,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 12),

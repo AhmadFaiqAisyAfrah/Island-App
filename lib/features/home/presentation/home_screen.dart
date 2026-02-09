@@ -400,12 +400,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                             children: [
                                               const IslandCoinIcon(size: 22),
                                               const SizedBox(width: 6),
-                                              Text(
+                                               Text(
                                                 '$coinBalance',
                                                 style: AppTextStyles.body.copyWith(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w600,
-                                                  color: AppColors.textMain,
+                                                  color: isNight ? Colors.white : AppColors.textMain,
                                                 ),
                                               ),
                                             ],
