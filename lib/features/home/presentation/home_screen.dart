@@ -26,6 +26,7 @@ import '../../music/presentation/music_icon_button.dart';
 import '../../../services/music_service.dart';
 import '../../tags/presentation/tag_selector.dart';
 
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -33,18 +34,25 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   // ... (Code omitted for brevity)
   String _currentQuote = "Your quiet place."; 
   Timer? _quoteRotationTimer;
   DateTime? _pausedAt;
   bool _showFocusHint = false;
   String _selectedMusic = 'None'; // Track selected music: None, Rainy Vibes, Forest Vibes
+  
+  // Theme selection state
+  String _selectedTheme = 'Original Island';
+  TabController? _tabController;
+  bool _collapseAllByDefault = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Initialize tab controller
+    _tabController = TabController(length: 3, vsync: this);
     // Initial Headline
     _currentQuote = QuotesRepository.getDashboardHeadline();
 
@@ -679,7 +687,7 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
 
   @override
   void dispose() {
-    if (mounted) _controller.dispose();
+    _controller.dispose();
     super.dispose();
   }
 

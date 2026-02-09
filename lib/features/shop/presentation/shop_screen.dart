@@ -4,9 +4,10 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../services/point_service.dart';
 import '../../../../services/trial_service.dart';
 import '../../../../core/data/shared_preferences_provider.dart';
-import '../data/theme_catalog.dart';
-import '../../../domain/monetization/monetization.dart';
 import '../../../../core/widgets/island_coin_icon.dart';
+import 'seasonal_themes_page.dart';
+import 'environments_page.dart';
+import 'houses_page.dart';
 
 /// Shop Screen - Monetization Phase 2
 /// 
@@ -84,44 +85,38 @@ class ShopScreen extends ConsumerWidget {
               onBuy: () {},
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            // COLLAPSIBLE SHOP SECTIONS
-            _CollapsibleSection(
+            // NAVIGATION CARDS
+            _NavigationCard(
               title: "Seasonal Themes",
-              initiallyExpanded: false,
-              children: ThemeCatalog.seasonal.map((item) => _ThemeItemCard(
-                item: item,
-                currentPoints: currentPoints,
-                canShowTrial: canShowTrial,
-                isTrialActive: trialService.isTrialActiveFor(item.id),
-              )).toList(),
+              icon: Icons.calendar_today,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SeasonalThemesPage()),
+              ),
             ),
-            
-            const SizedBox(height: 16),
 
-            _CollapsibleSection(
+            const SizedBox(height: 12),
+
+            _NavigationCard(
               title: "Environments",
-              initiallyExpanded: false,
-              children: ThemeCatalog.environments.map((item) => _ThemeItemCard(
-                item: item,
-                currentPoints: currentPoints,
-                canShowTrial: canShowTrial,
-                isTrialActive: trialService.isTrialActiveFor(item.id),
-              )).toList(),
+              icon: Icons.landscape,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EnvironmentsPage()),
+              ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            _CollapsibleSection(
+            _NavigationCard(
               title: "Houses",
-              initiallyExpanded: false,
-              children: ThemeCatalog.houses.map((item) => _ThemeItemCard(
-                item: item,
-                currentPoints: currentPoints,
-                canShowTrial: canShowTrial,
-                isTrialActive: trialService.isTrialActiveFor(item.id),
-              )).toList(),
+              icon: Icons.home,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HousesPage()),
+              ),
             ),
 
             const SizedBox(height: 48),
@@ -255,378 +250,65 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _ThemeItemCard extends StatelessWidget {
-  final MonetizableThemeItem item;
-  final int currentPoints;
-  final bool canShowTrial;
-  final bool isTrialActive;
-
-  const _ThemeItemCard({
-    required this.item,
-    required this.currentPoints,
-    required this.canShowTrial,
-    required this.isTrialActive,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bool canAfford = item.pointCost != null && currentPoints >= item.pointCost!;
-    final bool showTrialButton = item.supportsTrial && canShowTrial && !isTrialActive;
-    final bool isLocked = item.accessType != ItemAccessType.free;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isLocked ? Colors.white.withOpacity(0.4) : Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(20),
-        border: isLocked 
-            ? Border.all(color: Colors.grey.withOpacity(0.3))
-            : Border.all(color: item.accentColor.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          // PREVIEW
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: item.accentColor.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: isLocked 
-                ? Icon(Icons.lock, color: Colors.grey.withOpacity(0.6), size: 28)
-                : Icon(Icons.check_circle, color: AppColors.islandGrass, size: 28),
-            ),
-          ),
-          const SizedBox(width: 16),
-          
-          // INFO
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        style: AppTextStyles.subHeading.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isLocked ? Colors.grey : AppColors.textMain,
-                        ),
-                      ),
-                    ),
-                    if (isTrialActive)
-                      _StatusBadge(
-                        text: "ON TRIAL",
-                        color: AppColors.islandGrass,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.description,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 12,
-                    color: AppColors.textSub,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                
-                // ACCESS INDICATOR
-                if (item.accessType == ItemAccessType.free)
-                  _AccessLabel(icon: Icons.check, text: "Free", color: AppColors.islandGrass)
-                else if (item.accessType == ItemAccessType.pointUnlock && item.pointCost != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: canAfford
-                          ? const Color(0xFFFFD700).withOpacity(0.15)
-                          : Colors.grey.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: canAfford
-                            ? const Color(0xFFFFD700).withOpacity(0.5)
-                            : Colors.grey.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IslandCoinIcon(size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${item.pointCost}',
-                          style: AppTextStyles.body.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: canAfford ? const Color(0xFFFFA500) : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (item.accessType == ItemAccessType.premiumPurchase)
-                  _AccessLabel(
-                    icon: Icons.diamond,
-                    text: "Premium",
-                    color: Colors.purple,
-                    isLocked: true,
-                  )
-                else if (item.accessType == ItemAccessType.trial)
-                  _AccessLabel(
-                    icon: Icons.timer,
-                    text: "Try Free",
-                    color: canShowTrial ? Colors.blue : Colors.grey,
-                    isLocked: !canShowTrial,
-                  ),
-              ],
-            ),
-          ),
-
-          // ACTION BUTTONS
-          if (isLocked) ...[
-            const SizedBox(width: 12),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // UNLOCK BUTTON
-                if (item.isPointUnlock)
-                  _ActionButton(
-                    label: "Unlock",
-                    isEnabled: canAfford,
-                    onPressed: canAfford ? () {} : null,
-                  ),
-                
-                // TRIAL BUTTON
-                if (showTrialButton) ...[
-                  if (item.isPointUnlock) const SizedBox(height: 8),
-                  _ActionButton(
-                    label: "Try",
-                    isEnabled: true,
-                    isSecondary: true,
-                    onPressed: () {},
-                  ),
-                ],
-
-                // PREMIUM LABEL
-                if (item.isPremium)
-                  Text(
-                    "Soon",
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AccessLabel extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-  final bool isLocked;
-
-  const _AccessLabel({
-    required this.icon,
-    required this.text,
-    required this.color,
-    this.isLocked = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isLocked ? Colors.grey.withOpacity(0.1) : color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: isLocked ? Colors.grey : color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: AppTextStyles.body.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isLocked ? Colors.grey : color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final bool isEnabled;
-  final bool isSecondary;
-  final VoidCallback? onPressed;
-
-  const _ActionButton({
-    required this.label,
-    required this.isEnabled,
-    this.isSecondary = false,
-    this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 80,
-      child: ElevatedButton(
-        onPressed: isEnabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary 
-              ? Colors.white 
-              : (isEnabled ? AppColors.islandGrass : Colors.grey.withOpacity(0.3)),
-          foregroundColor: isSecondary ? AppColors.islandGrass : Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: isSecondary 
-                ? BorderSide(color: AppColors.islandGrass.withOpacity(0.3))
-                : BorderSide.none,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isEnabled 
-                ? (isSecondary ? AppColors.islandGrass : Colors.white)
-                : Colors.grey,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String text;
-  final Color color;
-
-  const _StatusBadge({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
-class _CollapsibleSection extends StatefulWidget {
+class _NavigationCard extends StatelessWidget {
   final String title;
-  final List<Widget> children;
-  final bool initiallyExpanded;
+  final IconData icon;
+  final VoidCallback onTap;
 
-  const _CollapsibleSection({
+  const _NavigationCard({
     required this.title,
-    required this.children,
-    this.initiallyExpanded = false,
+    required this.icon,
+    required this.onTap,
   });
 
   @override
-  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
-}
-
-class _CollapsibleSectionState extends State<_CollapsibleSection> {
-  late bool _isExpanded;
-
-  @override
-  void initState() {
-    super.initState();
-    _isExpanded = widget.initiallyExpanded;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-      ),
-      child: Column(
-        children: [
-          // Section Header
-          InkWell(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(16),
-              bottom: Radius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: AppTextStyles.subHeading.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textMain,
-                      ),
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.textSub,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.withOpacity(0.1)),
           ),
-          // Expandable Content
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                children: widget.children,
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.islandGrass.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.islandGrass,
+                  size: 24,
+                ),
               ),
-            ),
-            crossFadeState: _isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.subHeading.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMain,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.textSub,
+                size: 16,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
