@@ -22,7 +22,7 @@ import '../../shop/presentation/widgets/island_coin_badge.dart';
 import '../../../../services/point_service.dart';
 import '../../archipelago/data/archipelago_provider.dart';
 import '../../tags/presentation/tags_provider.dart';
-import '../../music/presentation/music_dropdown.dart';
+import '../../music/presentation/music_icon_button.dart';
 import '../../../services/music_service.dart';
 import '../../tags/presentation/tag_selector.dart';
 
@@ -415,22 +415,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                           mainAxisSize: MainAxisSize.min,
                             // OPTICAL CENTER ALIGNMENT
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                             // TAG SELECTOR (Intention) - Fades out when focusing
-                             TagSelector(isFocusing: isFocusing),
-                             
-                              // MUSIC DROPDOWN (None / Rainy Vibes / Forest Vibes)
-                              if (!isFocusing) ...[
-                                const SizedBox(height: 12),
-                                MusicDropdown(
-                                  initialValue: _selectedMusic,
-                                  onMusicSelected: (music) {
-                                    setState(() {
-                                      _selectedMusic = music;
-                                    });
-                                  },
-                                ),
-                              ],
+                           children: [
+                             // CONTROL ROW: Session Tag + Music (horizontal layout)
+                             if (!isFocusing)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Session Tag (left)
+                                    TagSelector(isFocusing: isFocusing),
+                                    const SizedBox(width: 12),
+                                    // Music Icon Button (right)
+                                    MusicIconButton(
+                                     initialValue: _selectedMusic,
+                                     onMusicSelected: (music) {
+                                       setState(() {
+                                         _selectedMusic = music;
+                                       });
+                                     },
+                                   ),
+                                 ],
+                               )
+                             else
+                               // During focus: show TagSelector in disabled state
+                               TagSelector(isFocusing: isFocusing),
                              
                              if (!isFocusing && _showFocusHint) ...[
                               const SizedBox(height: 16),
