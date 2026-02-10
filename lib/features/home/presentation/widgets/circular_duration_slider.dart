@@ -149,23 +149,23 @@ class _CircularSliderPainter extends CustomPainter {
     // Track: Very subtle glass
     final Color trackColor = isNight 
         ? Colors.white.withOpacity(0.08) 
-        : Colors.black.withOpacity(0.04);
+        : const Color(0xFF9FB2C8).withOpacity(0.15);
         
     // Progress: Visible Glass Control
     final Color progressColor = isNight
         ? Colors.white.withOpacity(0.5) 
-        : Colors.white.withOpacity(0.65); // Soft white glass
+        : const Color(0xFFA6B6C9).withOpacity(0.7);
         
     // Knob: Tactile Handle
     final Color knobColor = isNight 
         ? Colors.white.withOpacity(0.95) 
-        : Colors.white;
+        : const Color(0xFF9FB2C8);
 
     // Paint Track (Full Circle)
     final trackPaint = Paint()
       ..color = trackColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6 // Thicker for tactile feel
+      ..strokeWidth = isNight ? 6 : 7 // Slightly thicker for day mode
       ..strokeCap = StrokeCap.round;
       
     canvas.drawCircle(center, radius, trackPaint);
@@ -174,7 +174,7 @@ class _CircularSliderPainter extends CustomPainter {
     final progressPaint = Paint()
       ..color = progressColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6 // Match thickness
+      ..strokeWidth = isNight ? 6 : 7 // Match thickness
       ..strokeCap = StrokeCap.round;
 
     double sweepAngle = 2 * math.pi * progress;

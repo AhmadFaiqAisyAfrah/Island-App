@@ -210,12 +210,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 duration: const Duration(milliseconds: 1200), // Smooth slow transition
                 curve: Curves.easeInOut,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: bgColors,
-                     // DAY/AUTUMN: Smooth steps. NIGHT: Standard.
-                     stops: isNight ? null : (bgColors.length == 4 ? [0.0, 0.4, 0.7, 1.0] : [0.0, 1.0]), 
+                   gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: bgColors,
+                       // DAY/AUTUMN: Smooth steps. NIGHT: Standard.
+                       stops: isNight ? null : (bgColors.length == 4 ? [0.0, 0.4, 0.7, 1.0] : (bgColors.length == 3 ? [0.0, 0.5, 1.0] : [0.0, 1.0])),
                   )
                 )
              )
@@ -325,12 +325,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Top: Quote / Header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                       // Top: Quote / Header
+                       Padding(
+                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
                         child: AnimatedSwitcher(
                           duration: const Duration(seconds: 1),
-                          child: isFocusing 
+                          child: isFocusing
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(30),
                                 child: BackdropFilter(
@@ -346,29 +346,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                         width: 1.0,
                                       ),
                                     ),
-                              /* 
-                               * QUOTE / TAGLINE 
-                               * Rules: White text, specific opacity, calm typography
-                               */
-                                child: Text(
-                                  _currentQuote,
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.subHeading.copyWith(
-                                    color: Colors.white.withOpacity(0.95), // Heading: High Opacity
-                                    fontSize: 18,
-                                    fontStyle: FontStyle.italic,
-                                    letterSpacing: 0.5,
-                                    shadows: AppTextStyles.softShadow, // Subtle reinforcement
-                                  ),
-                                ),
-                              ),
-                            ),
-                            ) // Close ClipRRect
+                               /*
+                                * QUOTE / TAGLINE
+                                * Rules: White text, specific opacity, calm typography
+                                */
+                                 child: Text(
+                                   _currentQuote,
+                                   textAlign: TextAlign.center,
+                                   style: AppTextStyles.subHeading.copyWith(
+                                     color: Colors.white.withOpacity(0.95), // Heading: High Opacity
+                                     fontSize: 18,
+                                     fontStyle: FontStyle.italic,
+                                     letterSpacing: 0.5,
+                                     shadows: AppTextStyles.softShadow, // Subtle reinforcement
+                                   ),
+                                 ),
+                               ),
+                             ),
+                             ) // Close ClipRRect
                             : Column(
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.only(top: 16.0),
-                                    child: Text( 
+                                    child: Text(
                                       _currentQuote, // Use dynamic quote even for headline
                                       key: ValueKey(_currentQuote),
                                       style: AppTextStyles.subHeading.copyWith(
@@ -590,38 +590,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           ? [const Color(0xFF093028), const Color(0xFF237A57)] 
           : [const Color(0xFFD3CCE3), const Color(0xFFE9E4F0)]; 
 
-      case AppEnvironment.defaultSky:
-      default:
-        // 2. DEFAULT (SEASONAL SKY)
-        
-        // Unified Night (Premium)
-        if (isNight) {
-           return [CalmPalette.winterNightTop, CalmPalette.winterNightBot];
-        }
+       case AppEnvironment.defaultSky:
+       default:
+         // 2. DEFAULT (SEASONAL SKY)
+         
+         // Unified Night (Premium)
+         if (isNight) {
+            return [CalmPalette.winterNightTop, CalmPalette.winterNightBot];
+         }
+         
+           // Winter Day
+           if (season == AppSeason.winter) {
+             return const [const Color(0xFFF3F5F7), const Color(0xFFF3F5F7)];
+           }
 
-        // Winter Day
-        if (season == AppSeason.winter) {
-          return [CalmPalette.winterSky, CalmPalette.winterDayMist];
-        }
-        
-        // Autumn Day
-        if (season == AppSeason.autumn) {
-           return const [
-             CalmPalette.autumnSky,
-             Color(0xFFE2DDD9), 
-             CalmPalette.autumnMist,
-             CalmPalette.autumnGround, 
-           ];
-        }
+           // Autumn Day
+           if (season == AppSeason.autumn) {
+              return const [const Color(0xFFF3F5F7), const Color(0xFFF3F5F7)];
+           }
 
-        // Normal / Sakura Day
-        return const [
-          CalmPalette.skyTop,
-          Color(0xFFE8EEF2),
-          CalmPalette.skyMist,
-          CalmPalette.deepWater,
-        ];
-    }
+           // Normal / Sakura Day
+           return const [const Color(0xFFF3F5F7), const Color(0xFFF3F5F7)];
+     }
   }
 }
 
