@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Pastel / Gouache Palette
-  static const Color skyTop = Color(0xFFC4E0E5);    // Soft pale blue
-  static const Color skyBottom = Color(0xFFF7E8D0); // Warm cream/peach
+  static const Color skyTop = Color(0xFFF2F4F6);    // Soft dove gray
+  static const Color skyBottom = Color(0xFFF2F4F6); // Soft dove gray
   
   static const Color oceanSurface = Color(0xFFA8D5E2); // Calm water
   static const Color oceanDeep = Color(0xFF7FB5C9);    // Slightly deeper water
@@ -13,8 +13,8 @@ class AppColors {
   static const Color islandCliff = Color(0xFF8B9D77);  // Shadowed green/brown
   static const Color islandBeige = Color(0xFFE6D5B8);  // Sand/Earth
   
-  static const Color textMain = Color(0xFF5A6B7C);     // Soft slate grey
-  static const Color textSub = Color(0xFF94A3B8);      // Muted cool grey
+  static const Color textMain = Color(0xFF5F6B7A);     // Same as time slider, dark soft blue-gray
+  static const Color textSub = Color(0xFF6B6B6B);      // Medium gray
   
   static const Color warmOverlay = Color(0xFFFFB347);  // For focus state (orange tint)
 }
@@ -44,7 +44,7 @@ class AppTextStyles {
     fontSize: 72,
     fontWeight: FontWeight.w200, // Very thin and elegant
     letterSpacing: 2.0,
-    color: AppColors.textMain,
+    color: Color(0xFF5F6B7A), // Same as main text color
   );
 
   static List<Shadow> get softShadow => [

@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 
 class CircularDurationSlider extends StatefulWidget {
@@ -149,17 +148,17 @@ class _CircularSliderPainter extends CustomPainter {
     // Track: Very subtle glass
     final Color trackColor = isNight 
         ? Colors.white.withOpacity(0.08) 
-        : const Color(0xFF9FB2C8).withOpacity(0.15);
+        : const Color(0xFF64748B).withOpacity(0.15); // Darker blue-gray for better contrast
         
     // Progress: Visible Glass Control
     final Color progressColor = isNight
         ? Colors.white.withOpacity(0.5) 
-        : const Color(0xFFA6B6C9).withOpacity(0.7);
+        : const Color(0xFF475569).withOpacity(0.8); // Darker blue-gray arc
         
     // Knob: Tactile Handle
     final Color knobColor = isNight 
         ? Colors.white.withOpacity(0.95) 
-        : const Color(0xFF9FB2C8);
+        : const Color(0xFF334155); // Dark blue-gray thumb
 
     // Paint Track (Full Circle)
     final trackPaint = Paint()

@@ -353,8 +353,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                  child: Text(
                                    _currentQuote,
                                    textAlign: TextAlign.center,
-                                   style: AppTextStyles.subHeading.copyWith(
-                                     color: Colors.white.withOpacity(0.95), // Heading: High Opacity
+                                    style: AppTextStyles.subHeading.copyWith(
+                                      color: isNight ? Colors.white.withOpacity(0.95) : Color(0xFF5F6B7A), // Dark soft blue-gray for day mode
                                      fontSize: 18,
                                      fontStyle: FontStyle.italic,
                                      letterSpacing: 0.5,
@@ -372,7 +372,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                       _currentQuote, // Use dynamic quote even for headline
                                       key: ValueKey(_currentQuote),
                                       style: AppTextStyles.subHeading.copyWith(
-                                        color: Colors.white.withOpacity(0.85), // Slightly boosted
+                                         color: isNight ? Colors.white.withOpacity(0.85) : Color(0xFF5F6B7A).withOpacity(0.8), // Dark soft blue-gray with 80% opacity for motivational text
                                         letterSpacing: 1.2, 
                                         fontWeight: FontWeight.w400,
                                         shadows: AppTextStyles.softShadow,
@@ -479,7 +479,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                               _formatTime(timerState.remainingSeconds),
                               textAlign: TextAlign.center, 
                               style: AppTextStyles.timer.copyWith(
-                                color: Colors.white, // Pure white for primary focus
+                                color: isNight ? Colors.white : Color(0xFF5F6B7A), // Dark soft blue-gray for day mode timer
                                 fontWeight: FontWeight.w300, // Slightly bolder than w200
                                 letterSpacing: 4.0, 
                                 height: 1.0, 
@@ -601,16 +601,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
          
            // Winter Day
            if (season == AppSeason.winter) {
-             return const [const Color(0xFFF3F5F7), const Color(0xFFF3F5F7)];
+             return const [const Color(0xFFF2F4F6), const Color(0xFFF2F4F6)];
            }
 
            // Autumn Day
            if (season == AppSeason.autumn) {
-              return const [const Color(0xFFF3F5F7), const Color(0xFFF3F5F7)];
+              return const [const Color(0xFFF2F4F6), const Color(0xFFF2F4F6)];
            }
 
            // Normal / Sakura Day
-           return const [const Color(0xFFF3F5F7), const Color(0xFFF3F5F7)];
+           return const [const Color(0xFFF2F4F6), const Color(0xFFF2F4F6)];
      }
   }
 }
@@ -746,7 +746,7 @@ class _AnimatedFocusButtonState extends State<_AnimatedFocusButton> with SingleT
               widget.isFocusing ? "Stop" : "Begin Focus",
               key: ValueKey(widget.isFocusing),
               style: AppTextStyles.subHeading.copyWith(
-                color: Colors.white,
+                color: widget.themeState.mode == AppThemeMode.night ? Colors.white : Color(0xFF5F6B7A), // Dark soft blue-gray for day mode button text
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,

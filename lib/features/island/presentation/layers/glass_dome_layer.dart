@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 
 class GlassDomeLayer extends StatelessWidget {
@@ -26,13 +25,13 @@ class GlassDomeLayer extends StatelessWidget {
         decoration: BoxDecoration(
            shape: BoxShape.circle,
            color: isNight
-                 ? Colors.white.withOpacity(0.0)
-                 : const Color(0xFFEFF3F6).withOpacity(0.12),
+                  ? Colors.white.withOpacity(0.0)
+                  : const Color(0xFFEAF1F6).withOpacity(0.18), // VERY light blue-gray tint, opacity max 0.20
            border: Border.all(
-             color: isNight
-                   ? Colors.white.withOpacity(0.15)
-                   : const Color(0xFFB7C6D6).withOpacity(0.55),
-             width: isNight ? 1.5 : 1.2,
+              color: isNight
+                    ? Colors.white.withOpacity(0.15)
+                    : const Color(0xFFB4C6D6).withOpacity(0.8), // Soft blue-gray, thin but visible
+              width: isNight ? 1.5 : 1.5, // Width 1.5–2 for day mode
            ),
        ),
        child: CustomPaint(
@@ -54,7 +53,7 @@ class _GlassReflectionPainter extends CustomPainter {
     
       // 1. PRIMARY HIGHLIGHT (Top Left - Light Source)
       // Sharper, brighter reflection of main light
-      final primaryOpacity = isNight ? 0.25 : 0.5;
+       final primaryOpacity = isNight ? 0.25 : 0.1; // ~40% of night mode opacity
       final primaryPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w * 0.025
@@ -65,10 +64,10 @@ class _GlassReflectionPainter extends CustomPainter {
           colors: [
             isNight
                   ? Colors.white.withOpacity(primaryOpacity)
-                  : Color(0xFFD0D7DE).withOpacity(0.5),
+                  : Colors.white.withOpacity(0.4), // ~40% of night mode opacity
             isNight
                   ? const Color(0xFFE6F0FA).withOpacity(0.6)
-                  : Color(0xFFD0D7DE).withOpacity(0.25),
+                  : Colors.white.withOpacity(0.25), // White/light gray highlight only
           ],
           stops: const [0.0, 0.4],
         ).createShader(Rect.fromLTWH(0, 0, w, h));
@@ -84,7 +83,7 @@ class _GlassReflectionPainter extends CustomPainter {
 
       // 1.5 PRIMARY HOTSPOT (Inner core)
       // Adds a tiny bit of "gloss" to the highlight
-      final hotspotOpacity = isNight ? 0.4 : 0.3;
+       final hotspotOpacity = isNight ? 0.4 : 0.16; // ~40% of night mode opacity
       final hotspotPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w * 0.01
@@ -100,36 +99,27 @@ class _GlassReflectionPainter extends CustomPainter {
      canvas.drawPath(pathHotspot, hotspotPaint);
      
 
-     // 1.6 SECONDARY REFLECTION (Day mode only)
-     // Soft reflection layer under existing highlight for extra depth
+     // 1.6 DAY MODE REFLECTION ARC (Day mode only)
+     // Subtle light reflection arc on bubble edge - neutral gray-blue
      if (!isNight) {
-       final secondaryPaint = Paint()
+       final reflectionPaint = Paint()
          ..style = PaintingStyle.stroke
-         ..strokeWidth = w * 0.02
-         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFDCEAF6).withOpacity(0.35),
-            Color(0xFFE6F0FA).withOpacity(0.2),
-          ],
-          stops: const [0.0, 0.5],
-        ).createShader(Rect.fromLTWH(0, 0, w, h));
-       
-       final pathSecondary = Path();
-       pathSecondary.addArc(
+         ..strokeWidth = w * 0.015 // Thin, same as night mode reflection
+         ..color = const Color(0xFF9FAFC0).withOpacity(0.3); // Neutral gray-blue, opacity 0.25-0.35
+      
+       final pathReflection = Path();
+       pathReflection.addArc(
          Rect.fromLTWH(margin, margin, w - margin*2, h - margin*2), 
-         math.pi * 1.0, // 9:00 position
-         math.pi * 0.35  // Wider arc than primary
+         math.pi * 1.05, // Upper-left arc position (same as night mode)
+         math.pi * 0.25  // Short crisp arc
        );
-       canvas.drawPath(pathSecondary, secondaryPaint);
+       canvas.drawPath(pathReflection, reflectionPaint);
      }
 
 
       // 2. RIM LIGHT (Bottom Right - Refraction)
       // Softer, wider, indicates volume on the shadow side
-      final rimOpacity = isNight ? 0.12 : 0.4;
+       final rimOpacity = isNight ? 0.12 : 0.16; // ~40% of night mode opacity
     final rimPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.015
@@ -153,31 +143,8 @@ class _GlassReflectionPainter extends CustomPainter {
     canvas.drawPath(pathRim, rimPaint);
 
 
-    // 3. EDGE GLOW (Day mode only)
-    // Very subtle glow around bubble circumference
-    if (!isNight) {
-      final edgeGlowPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.008
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12)
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFE6F0FA).withOpacity(0.25),
-            Color(0xFFDCEAF6).withOpacity(0.2),
-          ],
-          stops: const [0.0, 1.0],
-        ).createShader(Rect.fromLTWH(0, 0, w, h));
-      
-      final pathEdge = Path();
-      pathEdge.addArc(
-        Rect.fromLTWH(margin, margin, w - margin*2, h - margin*2), 
-        0.0, // Full circle
-        math.pi * 2
-      );
-      canvas.drawPath(pathEdge, edgeGlowPaint);
-    }
+    // 3. EDGE GLOW (Removed for day mode - too complex)
+    // Simplified to single reflection arc above
   }
 
   @override
