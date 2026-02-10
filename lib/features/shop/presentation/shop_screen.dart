@@ -2,17 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/point_service.dart';
-import '../../../../services/trial_service.dart';
 import '../../../../core/data/shared_preferences_provider.dart';
 import '../../../../core/widgets/island_coin_icon.dart';
 import 'seasonal_themes_page.dart';
 import 'environments_page.dart';
 import 'houses_page.dart';
 
-/// Shop Screen - Monetization Phase 2
-/// 
-/// READ ONLY UI - No ads, no payments, no side effects
-/// Displays point balance and monetizable items with visual states
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
 
@@ -20,10 +15,8 @@ class ShopScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(sharedPreferencesProvider);
     final pointService = PointService(prefs);
-    final trialService = TrialService(prefs);
-    
+
     final currentPoints = pointService.getCurrentPoints();
-    final canShowTrial = trialService.canShowTrialOfferToday();
 
     return Scaffold(
       backgroundColor: AppColors.skyBottom,
@@ -89,8 +82,8 @@ class ShopScreen extends ConsumerWidget {
 
             // NAVIGATION CARDS
             _NavigationCard(
-              title: "Seasonal Themes",
-              icon: Icons.calendar_today,
+              title: "Seasons",
+              iconText: "☃️",
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SeasonalThemesPage()),
@@ -101,7 +94,7 @@ class ShopScreen extends ConsumerWidget {
 
             _NavigationCard(
               title: "Environments",
-              icon: Icons.landscape,
+              iconText: "🏔️",
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const EnvironmentsPage()),
@@ -112,68 +105,15 @@ class ShopScreen extends ConsumerWidget {
 
             _NavigationCard(
               title: "Houses",
-              icon: Icons.home,
+              iconText: "🏡",
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const HousesPage()),
               ),
             ),
-
-            const SizedBox(height: 48),
-
-            // FOOTER
-            _buildFooter(),
-            const SizedBox(height: 20),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(
-            "How to Earn Island Coins",
-            style: AppTextStyles.subHeading.copyWith(fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          _buildEarningRow("🎯", "Focus Session", "+2 coins/min"),
-          const SizedBox(height: 8),
-          _buildEarningRow("🎁", "Welcome Bonus", "+100 coins"),
-          const SizedBox(height: 8),
-          _buildEarningRow("📺", "Watch Ads", "+50 coins (coming soon)"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEarningRow(String emoji, String label, String value) {
-    return Row(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 20)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: AppTextStyles.body.copyWith(fontSize: 13),
-          ),
-        ),
-        Text(
-          value,
-          style: AppTextStyles.body.copyWith(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: AppColors.islandGrass,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -252,12 +192,12 @@ class _SectionTitle extends StatelessWidget {
 
 class _NavigationCard extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final String iconText;
   final VoidCallback onTap;
 
   const _NavigationCard({
     required this.title,
-    required this.icon,
+    required this.iconText,
     required this.onTap,
   });
 
@@ -284,10 +224,11 @@ class _NavigationCard extends StatelessWidget {
                   color: AppColors.islandGrass.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: AppColors.islandGrass,
-                  size: 24,
+                child: Center(
+                  child: Text(
+                    iconText,
+                    style: const TextStyle(fontSize: 24),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -343,7 +284,6 @@ class _CoinBundleCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Coin Icon
           Container(
             width: 56,
             height: 56,
@@ -357,8 +297,7 @@ class _CoinBundleCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          
-          // INFO
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,7 +348,6 @@ class _CoinBundleCard extends StatelessWidget {
             ),
           ),
 
-          // BADGE & BUTTON
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,

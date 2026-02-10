@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/data/feature_discovery_provider.dart';
 import '../../../../core/widgets/glass_hint.dart';
 import 'theme_seasonal_page.dart';
@@ -55,10 +54,9 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
             ],
             
             _NavigationCard(
-              title: "Seasonal",
-              icon: Icons.calendar_today,
+              title: "Seasons",
+              iconText: "☃️",
               onTap: () {
-                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ThemeSeasonalPage()),
@@ -69,10 +67,9 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
             const SizedBox(height: 12),
 
             _NavigationCard(
-              title: "Environment",
-              icon: Icons.landscape,
+              title: "Environments",
+              iconText: "🏔️",
               onTap: () {
-                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ThemeEnvironmentPage()),
@@ -83,10 +80,9 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
             const SizedBox(height: 12),
 
             _NavigationCard(
-              title: "House",
-              icon: Icons.home,
+              title: "Houses",
+              iconText: "🏡",
               onTap: () {
-                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ThemeHousePage()),
@@ -109,12 +105,12 @@ class _ThemeSelectorDialogState extends ConsumerState<ThemeSelectorDialog> {
 
 class _NavigationCard extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final String iconText;
   final VoidCallback onTap;
 
   const _NavigationCard({
     required this.title,
-    required this.icon,
+    required this.iconText,
     required this.onTap,
   });
 
@@ -141,10 +137,11 @@ class _NavigationCard extends StatelessWidget {
                   color: AppColors.islandGrass.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  color: AppColors.islandGrass,
-                  size: 20,
+                child: Center(
+                  child: Text(
+                    iconText,
+                    style: const TextStyle(fontSize: 20),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

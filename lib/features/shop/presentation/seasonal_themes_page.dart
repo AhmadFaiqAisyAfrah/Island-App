@@ -21,7 +21,7 @@ class SeasonalThemesPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.skyBottom,
       appBar: AppBar(
-        title: Text("Seasonal Themes", style: AppTextStyles.heading.copyWith(fontSize: 20)),
+        title: Text("Seasons", style: AppTextStyles.heading.copyWith(fontSize: 20)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
