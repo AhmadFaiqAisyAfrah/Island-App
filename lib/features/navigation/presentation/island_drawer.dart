@@ -36,11 +36,13 @@ class IslandDrawer extends ConsumerWidget {
               // Menu Items
               _DrawerItem(
                 label: "Island",
+                emoji: '\ud83c\udfdd', // 🏝️
                 isActive: true,
                 onTap: () => Navigator.pop(context), 
               ),
               _DrawerItem(
                 label: "Journal",
+                emoji: '\ud83d\udcd3', // 📓
                 isActive: false, 
                 onTap: () {
                   Navigator.pop(context);
@@ -52,6 +54,7 @@ class IslandDrawer extends ConsumerWidget {
               ),
               _DrawerItem(
                 label: "Themes",
+                emoji: '\ud83c\udfa8', // 🎨
                 isActive: false,
                 onTap: () {
                   Navigator.pop(context);
@@ -60,6 +63,7 @@ class IslandDrawer extends ConsumerWidget {
               ),
               _DrawerItem(
                 label: "Shop",
+                emoji: '\ud83d\uded2', // 🛒
                 isActive: false,
                 onTap: () {
                   Navigator.pop(context);
@@ -71,6 +75,7 @@ class IslandDrawer extends ConsumerWidget {
               ),
               _DrawerItem(
                 label: "Settings",
+                emoji: '\u2699\ufe0f', // ⚙️
                 isActive: false,
                 onTap: () {
                   Navigator.pop(context);
@@ -99,11 +104,13 @@ class IslandDrawer extends ConsumerWidget {
 
 class _DrawerItem extends StatelessWidget {
   final String label;
+  final String emoji; // Tambahkan emoji parameter
   final bool isActive;
   final VoidCallback onTap;
 
   const _DrawerItem({
     required this.label,
+    required this.emoji, // Tambahkan emoji required
     required this.isActive,
     required this.onTap,
   });
@@ -112,6 +119,12 @@ class _DrawerItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      leading: Text(
+        emoji,
+        style: const TextStyle(
+          fontSize: 24, // Ukuran emoji yang sesuai
+        ),
+      ),
       title: Text(
         label,
         style: AppTextStyles.subHeading.copyWith(

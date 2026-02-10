@@ -149,10 +149,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.notifications_outlined,
-                      color: AppColors.textMain.withOpacity(0.7),
-                    ),
+                     Text(
+                       '\ud83d\udd14', // 🔔
+                       style: TextStyle(
+                         fontSize: 20, // Ukuran sejajar dengan teks
+                         height: 1.0, // Tinggi disesuaikan
+                       ),
+                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(

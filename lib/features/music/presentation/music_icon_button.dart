@@ -32,22 +32,22 @@ class _MusicIconButtonState extends ConsumerState<MusicIconButton> {
     _selectedValue = widget.initialValue;
   }
 
-  /// Maps ambience name to its representative icon
-  IconData _getAmbienceIcon(String ambience) {
+  /// Maps ambience name to its representative emoji icon
+  String _getAmbienceEmoji(String ambience) {
     switch (ambience) {
       case 'Rainy Vibes':
-        return Icons.water_drop;
+        return '\ud83d\udca7'; // 💧
       case 'Forest Vibes':
-        return Icons.forest;
+        return '\ud83c\udf32'; // 🌲
       case 'Night Vibes':
-        return Icons.nightlight_round;
+        return '\ud83c\udf19'; // 🌙
       case 'Snow Vibes':
-        return Icons.ac_unit;
+        return '\u2744\ufe0f'; // ❄️
       case 'Ocean Vibes':
-        return Icons.waves;
+        return '\ud83c\udf0a'; // 🌊
       case 'None':
       default:
-        return Icons.music_off;
+        return '\ud83d\udd07'; // 🔇
     }
   }
 
@@ -62,8 +62,8 @@ class _MusicIconButtonState extends ConsumerState<MusicIconButton> {
       builder: (context, snapshot) {
         final isPlaying = snapshot.data ?? false;
         final hasSelection = _selectedValue != 'None';
-        // Get icon based on selected ambience
-        final ambienceIcon = _getAmbienceIcon(_selectedValue);
+        // Get emoji based on selected ambience
+        final ambienceEmoji = _getAmbienceEmoji(_selectedValue);
 
         // Match TagSelector day/night styling
         final dayDecoration = BoxDecoration(
@@ -96,11 +96,13 @@ class _MusicIconButtonState extends ConsumerState<MusicIconButton> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  ambienceIcon,
-                  color: isDay ? AppColors.textMain.withOpacity(0.7) : Colors.white.withOpacity(0.7),
-                  size: 18,
-                ),
+                 Text(
+                   ambienceEmoji,
+                   style: TextStyle(
+                     fontSize: 18,
+                     color: isDay ? AppColors.textMain.withOpacity(0.7) : Colors.white.withOpacity(0.7),
+                   ),
+                 ),
                 const SizedBox(width: 6),
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
@@ -188,12 +190,12 @@ class _MusicSelectionSheet extends StatelessWidget {
                         controller: scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         children: [
-                          _buildMusicOption(listContext, 'None', Icons.music_off, 'Silence'),
-                          _buildMusicOption(listContext, 'Rainy Vibes', Icons.water_drop, 'Gentle rain'),
-                          _buildMusicOption(listContext, 'Forest Vibes', Icons.forest, 'Nature sounds'),
-                          _buildMusicOption(listContext, 'Night Vibes', Icons.nightlight_round, 'Night ambience'),
-                          _buildMusicOption(listContext, 'Snow Vibes', Icons.ac_unit, 'Winter calm'),
-                          _buildMusicOption(listContext, 'Ocean Vibes', Icons.waves, 'Ocean waves'),
+                           _buildMusicOption(listContext, 'None', '\ud83d\udd07', 'Silence'), // 🔇
+                           _buildMusicOption(listContext, 'Rainy Vibes', '\ud83d\udca7', 'Gentle rain'), // 💧
+                           _buildMusicOption(listContext, 'Forest Vibes', '\ud83c\udf32', 'Nature sounds'), // 🌲
+                           _buildMusicOption(listContext, 'Night Vibes', '\ud83c\udf19', 'Night ambience'), // 🌙
+                           _buildMusicOption(listContext, 'Snow Vibes', '\u2744\ufe0f', 'Winter calm'), // ❄️
+                           _buildMusicOption(listContext, 'Ocean Vibes', '\ud83c\udf0a', 'Ocean waves'), // 🌊
                           // Bottom padding for safe area
                           SizedBox(height: MediaQuery.of(listContext).padding.bottom),
                         ],
@@ -209,7 +211,7 @@ class _MusicSelectionSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildMusicOption(BuildContext context, String value, IconData icon, String description) {
+   Widget _buildMusicOption(BuildContext context, String value, String emoji, String description) {
     final isSelected = selectedValue == value;
 
     return GestureDetector(
@@ -230,11 +232,13 @@ class _MusicSelectionSheet extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.islandCliff : AppColors.textMain,
-              size: 22,
-            ),
+             Text(
+               emoji,
+               style: TextStyle(
+                 fontSize: 22,
+                 color: isSelected ? AppColors.islandCliff : AppColors.textMain,
+               ),
+             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

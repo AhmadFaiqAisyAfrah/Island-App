@@ -98,10 +98,12 @@ class _MusicDropdownContentState extends State<_MusicDropdownContent> {
                   value: 'None',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.music_off,
-                        color: widget.isNight ? Colors.white.withOpacity(0.6) : Color(0xFF5F6B7A).withOpacity(0.6),
-                        size: 16,
+                      Text(
+                        '\ud83d\udd07', // 🔇
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isNight ? Colors.white.withOpacity(0.6) : Color(0xFF5F6B7A).withOpacity(0.6),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('None'),
@@ -112,10 +114,12 @@ class _MusicDropdownContentState extends State<_MusicDropdownContent> {
                   value: 'Rainy Vibes',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.water_drop,
-                        color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
-                        size: 16,
+                      Text(
+                        '\ud83d\udca7', // 💧
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('Rainy Vibes'),
@@ -126,10 +130,12 @@ class _MusicDropdownContentState extends State<_MusicDropdownContent> {
                   value: 'Forest Vibes',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.forest,
-                        color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
-                        size: 16,
+                      Text(
+                        '\ud83c\udf32', // 🌲
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('Forest Vibes'),
@@ -140,10 +146,12 @@ class _MusicDropdownContentState extends State<_MusicDropdownContent> {
                   value: 'Night Vibes',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.nights_stay,
-                        color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
-                        size: 16,
+                      Text(
+                        '\ud83c\udf19', // 🌙
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('Night Vibes'),
@@ -154,10 +162,12 @@ class _MusicDropdownContentState extends State<_MusicDropdownContent> {
                   value: 'Snow Vibes',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.ac_unit,
-                        color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
-                        size: 16,
+                      Text(
+                        '\u2744\ufe0f', // ❄️
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('Snow Vibes'),
@@ -168,10 +178,12 @@ class _MusicDropdownContentState extends State<_MusicDropdownContent> {
                   value: 'Ocean Vibes',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.water,
-                        color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
-                        size: 16,
+                      Text(
+                        '\ud83c\udf0a', // 🌊
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isNight ? Colors.white.withOpacity(0.8) : Color(0xFF5F6B7A).withOpacity(0.8),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('Ocean Vibes'),
