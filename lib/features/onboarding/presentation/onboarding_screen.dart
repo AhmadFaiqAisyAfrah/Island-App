@@ -1,399 +1,266 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/data/shared_preferences_provider.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
-import '../../home/presentation/distant_scenery.dart';
-import '../../home/presentation/star_scatter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../home/presentation/home_screen.dart';
-import '../../island/presentation/island_visual_stack.dart';
-import '../../island/presentation/layers/island_base_layer.dart';
-import '../../onboarding/data/onboarding_storage.dart';
-import '../../timer/domain/timer_logic.dart';
-import '../../../services/notification_service.dart';
 
-class OnboardingScreen extends ConsumerStatefulWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
-    with TickerProviderStateMixin {
-  late final PageController _pageController;
-  late final AnimationController _pulseController;
-  int _pageIndex = 0;
-
-  final List<_OnboardingSlide> _slides = const [
-    _OnboardingSlide(
-      title: "You've arrived.",
-      subtitle: 'Meet your calm island.',
-      ctaLabel: null,
-      visualType: _OnboardingVisualType.arrival,
-      gradient: [
-        Color(0xFFF3ECE4),
-        Color(0xFFE6EEF1),
-        Color(0xFFD4E0E6),
-      ],
-    ),
-    _OnboardingSlide(
-      title: 'Name your focus.',
-      subtitle: 'Small rituals make a big difference.',
-      ctaLabel: null,
-      visualType: _OnboardingVisualType.intention,
-      gradient: [
-        Color(0xFFF2E6D8),
-        Color(0xFFE2EBEE),
-        Color(0xFFCBD9DF),
-      ],
-    ),
-    _OnboardingSlide(
-      title: 'Gentle Notifications',
-      subtitle: 'Island can quietly let you know\nwhen a session ends,\nor softly reflect at night.\n\nNothing urgent. Just presence.',
-      ctaLabel: null,
-      visualType: _OnboardingVisualType.notification,
-      gradient: [
-        Color(0xFFE8E6F3),
-        Color(0xFFE2EBEE),
-        Color(0xFFD4E0E6),
-      ],
-    ),
-    _OnboardingSlide(
-      title: 'Begin.',
-      subtitle: 'Your calm space is ready.',
-      ctaLabel: 'Enter Island',
-      visualType: _OnboardingVisualType.invitation,
-      gradient: [
-        CalmPalette.skyTop,
-        Color(0xFFE8EEF2),
-        CalmPalette.skyMist,
-        CalmPalette.deepWater,
-      ],
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-  }
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _controller = PageController();
+  int _currentIndex = 0;
+  static const int _totalPages = 8; // Updated for final flow
+  String? _userName;
+  String? _phoneUsageTime;
+  String? _calculatedLifetimeHours;
+  String? _calculatedLifetimeYears;
+  String? _selectedEmotion;
+  String? _selectedIntention;
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _pulseController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _completeOnboarding() async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final storage = OnboardingStorage(prefs);
-    await storage.setComplete();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(_fadeRoute(const HomeScreen()));
-  }
-
-  PageRouteBuilder<void> _fadeRoute(Widget page) {
-    return PageRouteBuilder<void>(
-      pageBuilder: (_, animation, __) => page,
-      transitionsBuilder: (_, animation, __, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      transitionDuration: const Duration(milliseconds: 700),
-    );
-  }
-
-  Future<void> _handleNotificationPermission({required bool allow}) async {
-    final notificationService = NotificationService();
-    
-    if (allow) {
-      // Request Android notification permission (shows system dialog on Android 13+)
-      final granted = await notificationService.requestPermission();
-      
-      if (granted) {
-        // Permission granted, move to next slide
-        if (_pageIndex < _slides.length - 1) {
-          _pageController.nextPage(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-          );
-        }
-      } else {
-        // Permission denied - open system settings so user can enable manually
-        await notificationService.openSystemSettings();
-        
-        // Don't auto-advance - let user come back after enabling in settings
-        // Check permission again when they return to the app
-        await Future.delayed(const Duration(seconds: 1));
-        final nowGranted = await notificationService.checkPermissionStatus();
-        if (nowGranted && _pageIndex < _slides.length - 1) {
-          _pageController.nextPage(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-          );
-        }
-      }
-    } else {
-      // User chose "Not now" - save as disabled but mark as asked
-      await notificationService.setEnabled(false);
-      
-      // Move to next slide
-      if (_pageIndex < _slides.length - 1) {
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
+  void _next() {
+    if (_controller.hasClients) {
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final slide = _slides[_pageIndex];
-    final bool showIsland = slide.visualType == _OnboardingVisualType.invitation;
-    final bool isNotificationSlide = slide.visualType == _OnboardingVisualType.notification;
-    final ThemeState islandTheme = const ThemeState(mode: AppThemeMode.night);
-    final bool isNight = showIsland;
-    final bgColors = showIsland ? _getBackgroundColors(islandTheme) : slide.gradient;
+  void initState() {
+    super.initState();
+    _loadOnboardingData();
+  }
 
+  void _skipToEntry() {
+    if (_controller.hasClients) {
+      _controller.animateToPage(
+        _totalPages - 1,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _onNameEntered(String name) {
+    setState(() {
+      _userName = name;
+    });
+    _saveOnboardingData();
+    // NO automatic navigation - only save the name
+  }
+
+  void _onPhoneUsageSelected(String usage) {
+    setState(() {
+      _phoneUsageTime = usage;
+      _calculateLifetimeImpact(usage);
+      _saveOnboardingData();
+    });
+  }
+
+  Future<void> _saveOnboardingData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('onboarding_userName', _userName ?? '');
+    await prefs.setString('onboarding_phoneUsageTime', _phoneUsageTime ?? '');
+    await prefs.setString('onboarding_lifetimeHours', _calculatedLifetimeHours ?? '');
+    await prefs.setString('onboarding_lifetimeYears', _calculatedLifetimeYears ?? '');
+    await prefs.setString('onboarding_selectedEmotion', _selectedEmotion ?? '');
+    await prefs.setString('onboarding_selectedIntention', _selectedIntention ?? '');
+  }
+
+  Future<void> _loadOnboardingData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('onboarding_userName');
+      _phoneUsageTime = prefs.getString('onboarding_phoneUsageTime');
+      _calculatedLifetimeHours = prefs.getString('onboarding_lifetimeHours');
+      _calculatedLifetimeYears = prefs.getString('onboarding_lifetimeYears');
+      _selectedEmotion = prefs.getString('onboarding_selectedEmotion');
+      _selectedIntention = prefs.getString('onboarding_selectedIntention');
+    });
+  }
+
+  void _onEmotionSelected(int index) {
+    setState(() {
+      _selectedEmotion = index.toString();
+      _saveOnboardingData();
+    });
+  }
+
+  void _onIntentionSelected(String intention) {
+    setState(() {
+      _selectedIntention = intention;
+      _saveOnboardingData();
+    });
+  }
+
+  void _calculateLifetimeImpact(String dailyUsage) {
+    int dailyHours = 0;
+    
+    // Correct mapping of selection to hours per day
+    if (dailyUsage == "Less than 2 hours") {
+      dailyHours = 1;
+    } else if (dailyUsage == "2–4 hours") {
+      dailyHours = 3;
+    } else if (dailyUsage == "4–6 hours") {
+      dailyHours = 5;
+    } else if (dailyUsage == "More than 6 hours") {
+      dailyHours = 7;
+    }
+    
+    // Correct formula: hoursPerDay * 365 * 80
+    final totalLifetimeHours = (dailyHours * 365 * 80).toDouble();
+    
+    // Correct formula: totalHours / 8760 (hours per year)
+    final totalLifetimeYears = totalLifetimeHours / 8760;
+    
+    // Format hours with thousands separator
+    _calculatedLifetimeHours = _formatNumber(totalLifetimeHours.round().toString());
+    
+    // Format years rounded to 1 decimal place
+    _calculatedLifetimeYears = totalLifetimeYears.toStringAsFixed(1);
+  }
+  
+  String _formatNumber(String number) {
+    // Add comma separators for thousands
+    if (number.length <= 3) return number;
+    
+    final buffer = StringBuffer();
+    int count = 0;
+    for (int i = number.length - 1; i >= 0; i--) {
+      buffer.write(number[i]);
+      count++;
+      if (count == 3 && i != 0) {
+        buffer.write(',');
+        count = 0;
+      }
+    }
+    return buffer.toString().split('').reversed.join('');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
-        fit: StackFit.expand,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: bgColors,
+          PageView(
+            controller: _controller,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+            },
+            children: [
+              _ArrivalPage(),
+              _NameInputPage(
+                onNameEntered: _onNameEntered,
+                userName: _userName,
               ),
-            ),
-          ),
-          if (showIsland && isNight)
-            const Positioned.fill(
-              child: StarScatter(count: 60),
-            ),
-          if (showIsland)
-            Positioned.fill(
-              child: DistantScenery(themeState: islandTheme),
-            ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 800),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  final scale = Tween<double>(begin: 0.96, end: 1.0).animate(animation);
-                  return FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(scale: scale, child: child),
-                  );
-                },
-                child: showIsland
-                    ? _IslandInvitation(
-                        key: const ValueKey('island'),
-                        themeState: islandTheme,
-                        pulse: _pulseController,
-                      )
-                    : _OnboardingVisual(
-                        key: ValueKey(slide.visualType),
-                        type: slide.visualType,
-                      ),
+              _IntentionPage(userName: _userName),
+              _PhoneUsagePage(
+                userName: _userName,
+                onUsageSelected: _onPhoneUsageSelected,
+                selectedUsage: _phoneUsageTime,
               ),
-            ),
+              _ReflectionPage(
+                calculatedLifetimeHours: _calculatedLifetimeHours,
+                calculatedLifetimeYears: _calculatedLifetimeYears,
+              ),
+              _PomodoroExplanationPage(),
+              _IslandFeaturesPage(),
+              _FinalEntryPage(),
+            ],
           ),
-          const Positioned.fill(child: _NoiseLayer()),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _completeOnboarding,
-                        style: TextButton.styleFrom(
-                          foregroundColor: isNight
-                              ? Colors.white.withOpacity(0.6)
-                              : AppColors.textMain.withOpacity(0.65),
-                        ),
-                        child: const Text('Skip'),
-                      ),
-                    ],
+          // Skip button - visible on all pages except final entry page
+          if (_currentIndex < _totalPages - 1)
+            Positioned(
+              top: 20,
+              right: 20,
+              child: TextButton(
+                onPressed: _skipToEntry,
+                child: const Text(
+                  'Skip',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: _slides.length,
-                    onPageChanged: (index) => setState(() => _pageIndex = index),
-                    itemBuilder: (context, index) {
-                      final page = _slides[index];
-                      final isNotificationPage = page.visualType == _OnboardingVisualType.notification;
-                      return _OnboardingPage(
-                        slide: page,
-                        showCta: index == _slides.length - 1,
-                        onCtaTap: _completeOnboarding,
-                        currentIndex: _pageIndex,
-                        total: _slides.length,
-                        isNight: isNight,
-                        isNotificationSlide: isNotificationPage,
-                        onAllowNotifications: () => _handleNotificationPermission(allow: true),
-                        onSkipNotifications: () => _handleNotificationPermission(allow: false),
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
+            ),
+          // Persistent page indicator - visible on all pages
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: _PageIndicator(
+              currentIndex: _currentIndex,
+              totalPages: _totalPages,
             ),
           ),
         ],
       ),
     );
   }
-
-  List<Color> _getBackgroundColors(ThemeState state) {
-    final bool isNight = state.mode == AppThemeMode.night;
-    final environment = state.environment;
-    final season = state.season;
-
-    switch (environment) {
-      case AppEnvironment.mountain:
-        return isNight
-            ? [const Color(0xFF232526), const Color(0xFF414345)]
-            : [const Color(0xFFE6DADA), const Color(0xFF274046)];
-
-      case AppEnvironment.beach:
-        return isNight
-            ? [const Color(0xFF0F2027), const Color(0xFF203A43)]
-            : [const Color(0xFF89F7FE), const Color(0xFF66A6FF)];
-
-      case AppEnvironment.forest:
-        return isNight
-            ? [const Color(0xFF093028), const Color(0xFF237A57)]
-            : [const Color(0xFFD3CCE3), const Color(0xFFE9E4F0)];
-
-      case AppEnvironment.defaultSky:
-      default:
-        if (isNight) {
-          return [CalmPalette.winterNightTop, CalmPalette.winterNightBot];
-        }
-
-        if (season == AppSeason.winter) {
-          return [CalmPalette.winterSky, CalmPalette.winterDayMist];
-        }
-
-        if (season == AppSeason.autumn) {
-          return const [
-            CalmPalette.autumnSky,
-            Color(0xFFE2DDD9),
-            CalmPalette.autumnMist,
-            CalmPalette.autumnGround,
-          ];
-        }
-
-        return const [
-          CalmPalette.skyTop,
-          Color(0xFFE8EEF2),
-          CalmPalette.skyMist,
-          CalmPalette.deepWater,
-        ];
-    }
-  }
 }
 
-class _OnboardingPage extends StatelessWidget {
-  final _OnboardingSlide slide;
-  final bool showCta;
-  final VoidCallback onCtaTap;
-  final int currentIndex;
-  final int total;
-  final bool isNight;
-  final bool isNotificationSlide;
-  final VoidCallback? onAllowNotifications;
-  final VoidCallback? onSkipNotifications;
+class _SimplePage extends StatelessWidget {
+  final String title;
 
-  const _OnboardingPage({
-    required this.slide,
-    required this.showCta,
-    required this.onCtaTap,
-    required this.currentIndex,
-    required this.total,
-    required this.isNight,
-    this.isNotificationSlide = false,
-    this.onAllowNotifications,
-    this.onSkipNotifications,
-  });
+  const _SimplePage({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
+    return Center(
+      child: Text(
+        title,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 22),
+      ),
+    );
+  }
+}
+
+class _ArrivalPage extends StatelessWidget {
+  const _ArrivalPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              slide.title,
+            const SizedBox(height: 40),
+            
+            // Emoji
+            const Text(
+              '🏝️',
+              style: TextStyle(fontSize: 30),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Main text
+            const Text(
+              "You've arrived. Meet your calm island.",
               textAlign: TextAlign.center,
-              style: AppTextStyles.heading.copyWith(
-                fontSize: 30,
-                height: 1.1,
-                color: isNight ? Colors.white.withOpacity(0.95) : AppColors.textMain,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w300,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              slide.subtitle,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(
-                color: isNight
-                    ? Colors.white.withOpacity(0.82)
-                    : AppColors.textMain.withOpacity(0.8),
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _ProgressDots(
-              total: total,
-              currentIndex: currentIndex,
-              isNight: isNight,
-            ),
-            if (showCta) ...[
-              const SizedBox(height: 18),
-              _PrimaryButton(
-                label: slide.ctaLabel ?? 'Enter Island',
-                onTap: onCtaTap,
-              ),
-            ],
-            if (isNotificationSlide) ...[
-              const SizedBox(height: 18),
-              _PrimaryButton(
-                label: 'Allow notifications',
-                onTap: onAllowNotifications ?? () {},
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: onSkipNotifications ?? () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.textMain.withOpacity(0.65),
-                ),
-                child: const Text('Not now'),
-              ),
-            ],
+            
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -401,148 +268,629 @@ class _OnboardingPage extends StatelessWidget {
   }
 }
 
-class _PrimaryButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
+class _IntentionPage extends StatefulWidget {
+  final String? userName;
 
-  const _PrimaryButton({required this.label, required this.onTap});
+  const _IntentionPage({this.userName});
+
+  @override
+  State<_IntentionPage> createState() => _IntentionPageState();
+}
+
+class _IntentionPageState extends State<_IntentionPage> {
+  int? _selectedIndex;
+
+  // Map options to their insights
+  final Map<int, String> _insights = {
+    0: "You're not alone.\nAround 60% of people worldwide report struggling\nto stay focused on a single task for long periods.",
+    1: "This is more common than it seems.\nAbout 70% of adults say they feel constantly\ninterrupted by competing demands and notifications.",
+    2: "You're feeling what many feel.\nNearly 65% of people describe their days as busy,\nyet emotionally unsatisfying or unfinished.",
+  };
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.islandGrass,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.subHeading.copyWith(
-            color: Colors.white,
-            fontSize: 17,
-          ),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 40),
+            
+            // Emoji
+            const Text(
+              '❤️‍🩹',
+              style: TextStyle(fontSize: 30),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Main text (personalized)
+            Text(
+              widget.userName != null && widget.userName!.isNotEmpty
+                  ? "What feels heavy right now, ${widget.userName}?"
+                  : "What feels heavy right now?",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w300,
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 60),
+            
+            // Selectable options with insights
+            _buildOptionWithInsight(
+              text: "I can't stay focused, even when I try.",
+              index: 0,
+            ),
+            
+            const SizedBox(height: 20),
+            
+            _buildOptionWithInsight(
+              text: "Too many things keep pulling my attention.",
+              index: 1,
+            ),
+            
+            const SizedBox(height: 20),
+            
+            _buildOptionWithInsight(
+              text: "I feel busy all day, but nothing feels finished.",
+              index: 2,
+            ),
+            
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildOptionWithInsight({required String text, required int index}) {
+    final isSelected = _selectedIndex == index;
+    final hasInsight = isSelected && _insights.containsKey(index);
+    
+    return Column(
+      children: [
+        // Main option
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedIndex = index;
+            });
+            final parentState = context.findAncestorStateOfType<_OnboardingScreenState>();
+            parentState?._onEmotionSelected(index);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? const Color(0xFFF1F5F9) 
+                  : Colors.transparent,
+              border: Border.all(
+                color: isSelected 
+                    ? const Color(0xFF64748B) 
+                    : const Color(0xFFE2E8F0),
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                color: isSelected 
+                    ? const Color(0xFF334155) 
+                    : const Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+          ),
+        ),
+        
+        // Insight dropdown (appears only when selected)
+        if (hasInsight) ...[
+          const SizedBox(height: 12),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFBFC), // Distinct calm background
+              border: Border.all(
+                color: const Color(0xFFE2E8F0),
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _insights[index]!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
-class _ProgressDots extends StatelessWidget {
-  final int total;
+class _PageIndicator extends StatelessWidget {
   final int currentIndex;
-  final bool isNight;
+  final int totalPages;
 
-  const _ProgressDots({
-    required this.total,
+  const _PageIndicator({
     required this.currentIndex,
-    required this.isNight,
+    required this.totalPages,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(total, (index) {
-        final isActive = index == currentIndex;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: isActive ? 22 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: isActive
-                ? (isNight
-                    ? Colors.white.withOpacity(0.9)
-                    : AppColors.islandGrass.withOpacity(0.9))
-                : Colors.white.withOpacity(isNight ? 0.4 : 0.6),
-            borderRadius: BorderRadius.circular(10),
-          ),
+      children: List.generate(totalPages, (index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: _buildDot(index == currentIndex),
         );
       }),
     );
   }
-}
 
-class _NoiseLayer extends StatelessWidget {
-  const _NoiseLayer();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _NoisePainter(),
+  Widget _buildDot(bool isActive) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFF64748B) : const Color(0xFFE2E8F0),
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
 
-class _NoisePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final random = math.Random(42);
-    final paint = Paint();
-    final w = size.width;
-    final h = size.height;
+class _NameInputPage extends StatefulWidget {
+  final Function(String) onNameEntered;
+  final String? userName;
 
-    for (int i = 0; i < 1600; i++) {
-      paint.color = Colors.white.withOpacity(random.nextDouble() * 0.03);
-      canvas.drawCircle(
-        Offset(random.nextDouble() * w, random.nextDouble() * h),
-        1.0,
-        paint,
-      );
-      paint.color = Colors.black.withOpacity(random.nextDouble() * 0.02);
-      canvas.drawCircle(
-        Offset(random.nextDouble() * w, random.nextDouble() * h),
-        1.0,
-        paint,
-      );
-    }
+  const _NameInputPage({
+    required this.onNameEntered,
+    this.userName,
+  });
+
+  @override
+  State<_NameInputPage> createState() => _NameInputPageState();
+}
+
+class _NameInputPageState extends State<_NameInputPage> {
+  late TextEditingController _controller;
+  bool _canProceed = false;
+  FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _controller.addListener(_onTextChanged);
   }
 
   @override
-  bool shouldRepaint(covariant _NoisePainter oldDelegate) => false;
-}
+  void dispose() {
+    _controller.removeListener(_onTextChanged);
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
-enum _OnboardingVisualType { arrival, intention, notification, invitation }
+  void _onTextChanged() {
+    final canProceed = _controller.text.trim().isNotEmpty;
+    if (canProceed != _canProceed) {
+      setState(() {
+        _canProceed = canProceed;
+      });
+    }
+  }
 
-class _OnboardingSlide {
-  final String title;
-  final String subtitle;
-  final String? ctaLabel;
-  final _OnboardingVisualType visualType;
-  final List<Color> gradient;
+  void _onContinueTapped() {
+    final name = _controller.text.trim();
+    if (name.isNotEmpty) {
+      // Dismiss keyboard first
+      _focusNode.unfocus();
+      
+      // Save name only - NO automatic navigation
+      widget.onNameEntered(name);
+      
+      // Navigate to NEXT PAGE ONLY - one page advance
+      Future.delayed(const Duration(milliseconds: 100), () {
+        final parentState = context.findAncestorStateOfType<_OnboardingScreenState>();
+        parentState?._next();
+      });
+    }
+  }
 
-  const _OnboardingSlide({
-    required this.title,
-    required this.subtitle,
-    required this.ctaLabel,
-    required this.visualType,
-    required this.gradient,
-  });
-}
-
-class _OnboardingVisual extends StatelessWidget {
-  final _OnboardingVisualType type;
-
-  const _OnboardingVisual({super.key, required this.type});
+  void _onFieldSubmitted(String value) {
+    // Only dismiss keyboard, don't trigger navigation
+    _focusNode.unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: const Alignment(0, -0.15),
-      child: SizedBox(
-        width: 280,
-        height: 280,
-        child: Stack(
-          alignment: Alignment.center,
+    return GestureDetector(
+      onTap: () {
+        // Dismiss keyboard when tapping outside
+        _focusNode.unfocus();
+      },
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              
+              // Main text
+              const Text(
+                "Before we begin,\nwhat should Island call you?",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w300,
+                  height: 1.4,
+                ),
+              ),
+              
+              const SizedBox(height: 60),
+              
+              // Name input field
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF334155),
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: "Your name",
+                    hintStyle: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onSubmitted: _onFieldSubmitted,
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+              
+              // Continue button
+              GestureDetector(
+                onTap: _canProceed ? _onContinueTapped : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: _canProceed 
+                        ? const Color(0xFF64748B) 
+                        : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Text(
+                    "Continue",
+                    style: TextStyle(
+                      color: _canProceed 
+                          ? Colors.white 
+                          : const Color(0xFF94A3B8),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhoneUsagePage extends StatefulWidget {
+  final String? userName;
+  final Function(String) onUsageSelected;
+  final String? selectedUsage;
+
+  const _PhoneUsagePage({
+    this.userName,
+    required this.onUsageSelected,
+    this.selectedUsage,
+  });
+
+  @override
+  State<_PhoneUsagePage> createState() => _PhoneUsagePageState();
+}
+
+class _PhoneUsagePageState extends State<_PhoneUsagePage> {
+  String? _selectedUsage;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedUsage = widget.selectedUsage;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userName = widget.userName ?? "";
+    
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (type == _OnboardingVisualType.arrival) const _ArrivalVisual(),
-            if (type == _OnboardingVisualType.intention) const _IntentionVisual(),
-            if (type == _OnboardingVisualType.notification) const _NotificationVisual(),
+            const SizedBox(height: 40),
+            
+            // Main text (personalized)
+            Text(
+              userName.isNotEmpty 
+                  ? "About your phone, $userName…\nHow much time do you lose to distractions each day?"
+                  : "About your phone…\nHow much time do you lose to distractions each day?",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w300,
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Subtitle
+            const Text(
+              "This includes scrolling, switching apps,\nand checking without meaning to.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Options
+            _buildUsageOption("Less than 2 hours"),
+            const SizedBox(height: 16),
+            _buildUsageOption("2–4 hours"),
+            const SizedBox(height: 16),
+            _buildUsageOption("4–6 hours"),
+            const SizedBox(height: 16),
+            _buildUsageOption("More than 6 hours"),
+            
+            const SizedBox(height: 40),
+            
+            // CTA button (only shows after selection)
+            if (_selectedUsage != null) ...[
+              GestureDetector(
+                onTap: () {
+                  if (_selectedUsage != null) {
+                    widget.onUsageSelected(_selectedUsage!);
+                    // Auto-advance after CTA
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      if (mounted) {
+                        final parentState = context.findAncestorStateOfType<_OnboardingScreenState>();
+                        parentState?._next();
+                      }
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF64748B),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Text(
+                    "That sounds right",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsageOption(String text) {
+    final isSelected = _selectedUsage == text;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedUsage = text;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? const Color(0xFFF1F5F9) 
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected 
+                ? const Color(0xFF64748B) 
+                : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+            color: isSelected 
+                ? const Color(0xFF334155) 
+                : const Color(0xFF64748B),
+            height: 1.4,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PomodoroExplanationPage extends StatelessWidget {
+  const _PomodoroExplanationPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 60),
+            
+            // Centered emoji
+            const Text(
+              '🌿',
+              style: TextStyle(fontSize: 32),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Headline
+            const Column(
+              children: [
+                Text(
+                  "You don't need more time.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w300,
+                    color: Color(0xFF334155),
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "You need better intervals.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w300,
+                    color: Color(0xFF334155),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Body
+            const Text(
+              "Island is built around a method called Pomodoro.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF334155),
+                height: 1.5,
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            const Text(
+              "Work in short, focused sessions — usually 25 minutes —",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF334155),
+                height: 1.5,
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            const Text(
+              "then rest briefly before continuing.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF334155),
+                height: 1.5,
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Closing line
+            const Text(
+              "Small cycles reduce overwhelm.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.5,
+              ),
+            ),
+            
+            const SizedBox(height: 8),
+            
+            const Text(
+              "They make distractions quieter.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.5,
+              ),
+            ),
+            
+            const SizedBox(height: 60),
           ],
         ),
       ),
@@ -550,244 +898,301 @@ class _OnboardingVisual extends StatelessWidget {
   }
 }
 
-class _ArrivalVisual extends StatelessWidget {
-  const _ArrivalVisual();
+class _IslandFeaturesPage extends StatelessWidget {
+  const _IslandFeaturesPage();
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        _SoftOrb(color: const Color(0xFFE4D6C8), size: 260),
-        _SoftOrb(color: const Color(0xFFD6E3E8), size: 210),
-        Container(
-          width: 130,
-          height: 130,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.55),
-            border: Border.all(color: Colors.white.withOpacity(0.8), width: 1),
-          ),
-        ),
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.85),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _IntentionVisual extends StatelessWidget {
-  const _IntentionVisual();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        _SoftOrb(color: const Color(0xFFE8DCCB), size: 260),
-        _SoftOrb(color: const Color(0xFFDDE7EA), size: 210),
-        Container(
-          width: 220,
-          height: 76,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.75),
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: Colors.white.withOpacity(0.9), width: 1),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.islandGrass.withOpacity(0.2),
-                ),
-                alignment: Alignment.center,
-                child: const Text('•', style: TextStyle(fontSize: 24, color: AppColors.textMain)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: AppColors.textMain.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 80,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppColors.textMain.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          top: 38,
-          right: 48,
-          child: Container(
-            width: 70,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.8), width: 1),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 60),
+            
+            // Centered emoji
+            const Text(
+              '🌲',
+              style: TextStyle(fontSize: 32),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _NotificationVisual extends StatelessWidget {
-  const _NotificationVisual();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        _SoftOrb(color: const Color(0xFFE6E3F3), size: 260),
-        _SoftOrb(color: const Color(0xFFDDE7EA), size: 210),
-        Container(
-          width: 140,
-          height: 140,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.75),
-            border: Border.all(color: Colors.white.withOpacity(0.9), width: 1),
-          ),
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.notifications_outlined,
-            size: 56,
-            color: AppColors.textMain.withOpacity(0.5),
-          ),
-        ),
-        Positioned(
-          top: 56,
-          right: 62,
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.islandGrass.withOpacity(0.6),
+            
+            const SizedBox(height: 40),
+            
+            // Headline
+            const Text(
+              "Your island supports your rhythm.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w300,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SoftOrb extends StatelessWidget {
-  final Color color;
-  final double size;
-
-  const _SoftOrb({required this.color, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color.withOpacity(0.55), color.withOpacity(0.0)],
+            
+            const SizedBox(height: 50),
+            
+            // Feature list
+            const Column(
+              children: [
+                _FeatureItem(text: "• Focus sessions — your quiet Pomodoro space"),
+                SizedBox(height: 12),
+                _FeatureItem(text: "• Tag your intention — name what you're working on"),
+                SizedBox(height: 12),
+                _FeatureItem(text: "• Soft lofi ambience"),
+                SizedBox(height: 12),
+                _FeatureItem(text: "• Journal your focus patterns"),
+                SizedBox(height: 12),
+                _FeatureItem(text: "• Personal themes — shape your island"),
+                SizedBox(height: 12),
+                _FeatureItem(text: "• Gentle notifications — nothing urgent"),
+                SizedBox(height: 12),
+                _FeatureItem(text: "• Screen awareness — gently reflect on your daily phone usage"),
+              ],
+            ),
+            
+            const SizedBox(height: 60),
+          ],
         ),
       ),
     );
   }
 }
 
-class _IslandInvitation extends StatelessWidget {
-  final ThemeState themeState;
-  final Animation<double> pulse;
+class _FeatureItem extends StatelessWidget {
+  final String text;
 
-  const _IslandInvitation({super.key, required this.themeState, required this.pulse});
+  const _FeatureItem({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final h = constraints.maxHeight;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: Color(0xFF334155),
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+}
 
-        return AnimatedBuilder(
-          animation: pulse,
-          builder: (context, child) {
-            final curved = Curves.easeInOut.transform(pulse.value);
-            final t = curved * math.pi * 2;
-            final bob = math.sin(t) * 2.0;
-            final breathe = 1.0075 + math.sin(t) * 0.0075;
-            final glowOpacity = 0.22 + (math.sin(t) + 1) * 0.06;
+class _FinalEntryPage extends StatefulWidget {
+  const _FinalEntryPage();
 
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  top: h * 0.26,
-                  child: Opacity(
-                    opacity: glowOpacity,
-                    child: Container(
-                      width: w * 0.7,
-                      height: w * 0.45,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(w),
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.skyBottom.withOpacity(0.6),
-                            AppColors.skyBottom.withOpacity(0.0),
-                          ],
-                        ),
-                      ),
-                    ),
+  @override
+  State<_FinalEntryPage> createState() => _FinalEntryPageState();
+}
+
+class _FinalEntryPageState extends State<_FinalEntryPage> {
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 60),
+            
+            // Headline
+            const Text(
+              "Begin.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w300,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Subtext
+            const Text(
+              "Your calm space is ready.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 60),
+            
+            // Primary button
+            GestureDetector(
+              onTap: _enterIsland,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF64748B),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: const Text(
+                  "Enter Island",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                Transform.translate(
-                  offset: Offset(0, bob),
-                  child: Transform.scale(
-                    scale: breathe,
-                    child: child,
-                  ),
-                ),
-              ],
-            );
-          },
-          child: IslandVisualStack(
-            isFocusing: false,
-            themeState: themeState,
-            currentSeconds: TimerNotifier.defaultDuration,
-            totalSeconds: 7200,
-            onDurationChanged: null,
-            showSlider: false,
-            enableCharacterIdleMotion: true,
+              ),
+            ),
+            
+            const SizedBox(height: 60),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _enterIsland() {
+    // Navigate to Island dashboard and complete onboarding
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const HomeScreen(),
+      ),
+    );
+    
+    // Mark onboarding as completed
+    _completeOnboarding();
+  }
+
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
+  }
+}
+
+class _ReflectionPage extends StatelessWidget {
+  final String? calculatedLifetimeHours;
+  final String? calculatedLifetimeYears;
+
+  const _ReflectionPage({
+    required this.calculatedLifetimeHours,
+    required this.calculatedLifetimeYears,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show reflection page with valid calculations
+    if (calculatedLifetimeHours == null || calculatedLifetimeYears == null) {
+      return const SafeArea(
+        child: Center(
+          child: Text(
+            "Please complete the previous step first.",
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF64748B),
+            ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 60),
+            
+            // Line 1 (small, neutral)
+            const Text(
+              "Over about 80 years,",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Line 2
+            const Text(
+              "this could quietly take around",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Line 3 (slightly larger weight)
+            Text(
+              "$calculatedLifetimeHours hours",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF334155),
+                height: 1.3,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Line 4
+            const Text(
+              "— or about",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Line 5 (EMPHASIZED - BOLD)
+            Text(
+              "$calculatedLifetimeYears years",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155),
+                height: 1.3,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Line 6
+            const Text(
+              "of your life.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 60),
+          ],
+        ),
+      ),
     );
   }
 }
