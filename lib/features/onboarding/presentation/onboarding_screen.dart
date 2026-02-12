@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/notification_service.dart';
+import '../data/onboarding_storage.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -529,8 +531,12 @@ void dispose() {
         ),
         const SizedBox(height: 30),
         ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pushReplacementNamed('/dashboard');
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await OnboardingStorage(prefs).setComplete();
+            if (context.mounted) {
+              Navigator.of(context).pushReplacementNamed('/dashboard');
+            }
           },
           child: const Text("Enter Island"),
         )
