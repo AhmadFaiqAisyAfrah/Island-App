@@ -59,8 +59,11 @@ class IslandApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.pastelTheme,
       // Enforce the pastel theme for the MVP visual consistency
-      themeMode: ThemeMode.light, 
+      themeMode: ThemeMode.light,
       home: home,
+      routes: {
+        '/dashboard': (context) => const HomeScreen(),
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../services/notification_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -18,13 +19,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   String _name = "";
   int? _selectedEmotion;
 
-  AnimationController? _pulseController;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   final int _totalPages = 8;
 
 int? _selectedDailyHours;
 int _lifetimeHours = 0;
 double _lifetimeYears = 0;
+bool _notificationAllowed = false;
 
   @override
 void initState() {
@@ -32,8 +35,12 @@ void initState() {
 
   _pulseController = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 1),
+    duration: const Duration(milliseconds: 1000),
   )..repeat(reverse: true);
+
+  _pulseAnimation = Tween<double>(begin: 1.0, end: 1.4).animate(
+    CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+  );
 
   _nameController.addListener(() {
     setState(() {
@@ -45,7 +52,7 @@ void initState() {
 
   @override
 void dispose() {
-  _pulseController?.dispose();
+  _pulseController.dispose();
   _controller.dispose();
   _nameController.dispose();
   super.dispose();
@@ -87,15 +94,23 @@ void dispose() {
       children: List.generate(_totalPages, (index) {
         final isActive = index == _currentIndex;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+        final dot = Container(
           width: isActive ? 14 : 8,
           height: isActive ? 14 : 8,
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF5F7C8A) : Colors.grey.shade300,
             shape: BoxShape.circle,
           ),
+        );
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          child: isActive
+              ? ScaleTransition(
+                  scale: _pulseAnimation,
+                  child: dot,
+                )
+              : dot,
         );
       }),
     );
@@ -123,6 +138,8 @@ void dispose() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        const Text("\u270F\uFE0F", style: TextStyle(fontSize: 48)),
+        const SizedBox(height: 16),
         const Text(
           "Before we begin,\nwhat should Island call you?",
           textAlign: TextAlign.center,
@@ -156,10 +173,11 @@ void dispose() {
     ];
 
     List<String> insights = [
-      "Around 60% struggle with focus.",
-      "Average phone checks: 58/day.",
-      "Nearly half feel busy but unfinished."
-    ];
+  "Studies suggest people switch digital tasks roughly every 40–60 seconds.",
+  "Research shows people check their phones dozens of times a day.",
+  "Many people report feeling busy — yet ending the day without meaningful progress."
+];
+
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -266,9 +284,11 @@ void dispose() {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            "How much time do you lose daily?",
-            style: TextStyle(fontSize: 22),
+          const Text("\uD83D\uDD70\uFE0F", style: TextStyle(fontSize: 48)),
+          const SizedBox(height: 16),
+          Text(
+            "How much time slips away to your screen each day, $_name?",
+            style: const TextStyle(fontSize: 22),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
@@ -288,6 +308,8 @@ void dispose() {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Text("\uD83D\uDCF1", style: TextStyle(fontSize: 52)),
+            const SizedBox(height: 20),
             const Text(
               "Over 80 years,",
               style: TextStyle(fontSize: 18, color: Colors.grey),
@@ -342,6 +364,8 @@ void dispose() {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text("\u231B", style: TextStyle(fontSize: 48)),
+            SizedBox(height: 16),
             Text(
               "A different rhythm\nis possible.",
               textAlign: TextAlign.center,
@@ -373,12 +397,16 @@ void dispose() {
 
   Widget _pageIslandFeatures() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Center(
+              child: Text("\uD83E\uDDED", style: TextStyle(fontSize: 48)),
+            ),
+            const SizedBox(height: 16),
             const Center(
               child: Text(
                 "Your island\nsupports you.",
@@ -388,6 +416,64 @@ void dispose() {
             ),
             const SizedBox(height: 30),
             ..._featureItems(),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("\u2022 ", style: TextStyle(fontSize: 15)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Gentle notifications",
+                        style: TextStyle(fontSize: 15, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "Allow Island to send quiet notifications when sessions end.",
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: _notificationAllowed
+                            ? null
+                            : () async {
+                                final granted = await NotificationService().requestPermission();
+                                if (granted) {
+                                  await NotificationService().setEnabled(true);
+                                  setState(() {
+                                    _notificationAllowed = true;
+                                  });
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _notificationAllowed
+                              ? Colors.grey.shade300
+                              : const Color(0xFF5F7C8A),
+                          foregroundColor: _notificationAllowed
+                              ? Colors.grey.shade600
+                              : Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          textStyle: const TextStyle(fontSize: 13),
+                        ),
+                        child: Text(
+                          _notificationAllowed
+                              ? "Notifications enabled \u2713"
+                              : "Enable notifications",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -401,8 +487,6 @@ void dispose() {
       "Soft lofi ambiance",
       "Focus journal \u2014 see your patterns",
       "Personal themes \u2014 shape your island",
-      "Gentle notifications",
-      "Screen-time awareness tracking",
     ];
 
     return features
@@ -429,14 +513,24 @@ void dispose() {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
-          "Begin.\nYour calm space is ready.",
+          "\uD83C\uDF89",
+          style: TextStyle(fontSize: 64),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          "Begin.",
+          style: TextStyle(fontSize: 28),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          "Your calm space is ready.",
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 22),
+          style: TextStyle(fontSize: 18, color: Colors.grey),
         ),
         const SizedBox(height: 30),
         ElevatedButton(
           onPressed: () {
-            Navigator.pushReplacementNamed(context, "/dashboard");
+            Navigator.of(context).pushReplacementNamed('/dashboard');
           },
           child: const Text("Enter Island"),
         )
