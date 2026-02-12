@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/data/shared_preferences_provider.dart';
 
-// Simple integer state for coin balance. 
-// Starting balanced at 50 coins (MVP).
+// Simple integer state for coin balance.
+// Default balance: 0 coins.
 class CurrencyNotifier extends StateNotifier<int> {
   final SharedPreferences _prefs;
   static const _keyCoins = 'user_coins';
@@ -13,7 +13,7 @@ class CurrencyNotifier extends StateNotifier<int> {
   }
 
   void _loadCoins() {
-    state = _prefs.getInt(_keyCoins) ?? 50; // Default to 50 if new
+    state = _prefs.getInt(_keyCoins) ?? 0;
   }
 
   void addCoins(int amount) {

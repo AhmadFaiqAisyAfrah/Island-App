@@ -23,25 +23,11 @@ class PointService {
   static const String _keyLastUpdated = 'points_last_updated';
   
   /// Constructor requires SharedPreferences instance
-  PointService(this._prefs) {
-    _seedStarterCoins();
-  }
-
-  /// Seed starter coins (50) for new users
-  /// Runs only once when no existing points found
-  void _seedStarterCoins() {
-    final hasExistingData = _prefs.containsKey(_keyTotalPoints);
-    if (!hasExistingData) {
-      // New user - give 50 starter coins
-      _prefs.setInt(_keyTotalPoints, 50);
-      _prefs.setInt(_keyTotalEarned, 50);
-      _prefs.setInt(_keyLastUpdated, DateTime.now().millisecondsSinceEpoch);
-    }
-  }
+  PointService(this._prefs);
   
   /// Get current point balance
   int getCurrentPoints() {
-    return _prefs.getInt(_keyTotalPoints) ?? 50; // Default to 50 if somehow null
+    return _prefs.getInt(_keyTotalPoints) ?? 0;
   }
   
   /// Get total points earned lifetime
