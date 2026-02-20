@@ -7,6 +7,7 @@ import '../../../../core/data/shared_preferences_provider.dart';
 import '../../../../core/widgets/island_coin_icon.dart';
 import '../../../../core/services/billing_service.dart';
 import '../../../../core/services/coin_service.dart';
+import '../../../../services/ad_service.dart';
 import 'seasonal_themes_page.dart';
 import 'environments_page.dart';
 import 'houses_page.dart';
@@ -61,6 +62,32 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     }
   }
 
+  Future<void> _watchAdForPoints() async {
+    final adShown = await AdService().showRewardedAd(
+      onEarned: (reward) async {
+        final points = 50;
+        await _coinService.addCoins(points);
+        await _refreshState();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('+$points coins earned!'),
+              backgroundColor: AppColors.islandGrass,
+            ),
+          );
+        }
+      },
+    );
+    if (!adShown && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ad not available. Try again later.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   List<ProductDetails> get _coinProducts {
     final list = _billing.products
         .where((p) => p.id.startsWith('island_coins_'))
@@ -108,7 +135,13 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                 children: [
                   // ── Balance ──
                   _BalanceHeader(points: _coins),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
+
+                  // ── Watch Ad for Points ──
+                  _WatchAdCard(
+                    onWatchAd: () => _watchAdForPoints(),
+                  ),
+                  const SizedBox(height: 24),
 
                   // ── Coin Bundles ──
                   _SectionTitle(title: "Grow Your Island"),
@@ -234,6 +267,81 @@ class _BalanceHeader extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Watch Ad Card ────────────────────────────────────────────
+
+class _WatchAdCard extends StatelessWidget {
+  final VoidCallback onWatchAd;
+
+  const _WatchAdCard({required this.onWatchAd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onWatchAd,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E7),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.play_circle_outline_rounded,
+                    size: 28,
+                    color: Color(0xFFFFB800),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Get Free Coins",
+                      style: AppTextStyles.subHeading.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Watch an ad to earn 50 coins",
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 12,
+                        color: AppColors.textSub,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Color(0xFFFFB800),
+                size: 16,
+              ),
+            ],
+          ),
         ),
       ),
     );

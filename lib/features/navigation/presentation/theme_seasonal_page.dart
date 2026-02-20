@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../config/dev_flags.dart'; // Temporary development override for design/testing
 import '../../../../services/point_service.dart';
 import '../../../../core/data/shared_preferences_provider.dart';
 import '../../shop/data/theme_catalog.dart';
@@ -42,7 +43,8 @@ class ThemeSeasonalPage extends ConsumerWidget {
           itemCount: ThemeCatalog.seasonal.length,
           itemBuilder: (context, index) {
             final item = ThemeCatalog.seasonal[index];
-            final isLocked = item.accessType != ItemAccessType.free;
+            // Temporary development override for design/testing
+            final isLocked = DEV_UNLOCK_ALL ? false : item.accessType != ItemAccessType.free;
             final canAfford = item.pointCost != null 
                 ? currentPoints >= item.pointCost! 
                 : true;
@@ -53,6 +55,7 @@ class ThemeSeasonalPage extends ConsumerWidget {
               isSelected: isSelected,
               isLocked: isLocked,
               canAfford: canAfford,
+              // Temporary development override for design/testing
               onTap: isLocked
                   ? () => _navigateToShop(context, item)
                   : () => _selectSeason(ref, item.id),
