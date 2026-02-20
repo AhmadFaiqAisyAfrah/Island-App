@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/notification_service.dart';
-import '../../../services/ad_service.dart';
 
 enum TimerStatus { idle, running, paused, completed }
 
@@ -88,9 +87,6 @@ class TimerNotifier extends StateNotifier<TimerState> {
     // Track focus session and reschedule daily reflection if needed
     NotificationService().incrementTodayFocusCount();
     NotificationService().rescheduleDailyReflectionIfNeeded();
-
-    // Show interstitial ad (if not premium)
-    AdService().showInterstitialAd();
   }
 
   @override

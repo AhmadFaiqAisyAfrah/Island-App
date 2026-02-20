@@ -19,7 +19,7 @@ import 'star_scatter.dart';
 import 'dart:math' as math;
 import '../../shop/presentation/shop_screen.dart';
 import '../../../../core/widgets/island_coin_icon.dart';
-import '../../../../services/point_service.dart';
+import '../../../../core/services/coin_service.dart';
 import '../../archipelago/data/archipelago_provider.dart';
 import '../../tags/presentation/tags_provider.dart';
 import '../../music/presentation/music_icon_button.dart';
@@ -118,9 +118,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final timerState = ref.watch(timerProvider);
     final themeState = ref.watch(themeProvider);
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final pointService = PointService(prefs);
-    final coinBalance = pointService.getCurrentPoints(); // Unified coin source
     final isFocusing = timerState.status == TimerStatus.running;
     final isNight = themeState.mode == AppThemeMode.night;
     final bgColors = _getBackgroundColors(themeState);
@@ -150,8 +147,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         final int minutesFocused = next.initialDuration ~/ 60;
         final int reward = minutesFocused > 0 ? minutesFocused : 1;
         
-        // Award Coins using PointService (unified source)
-        pointService.addPoints(reward);
+        // Award Coins using CoinService (single source of truth)
+        CoinService().addCoins(reward);
 
         // Archipelago: Save Daily Progress
         final selectedTag = ref.read(selectedTagProvider);
@@ -380,44 +377,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  // CENTERED COIN BALANCE (Secondary)
+                                  // CENTERED COIN BALANCE (Secondary) — reactive via ValueListenableBuilder
                                   if (!isFocusing)
-                                    GestureDetector(
-                                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen())),
-                                      child: Container(
-                                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                         decoration: BoxDecoration(
-                                           color: isNight 
-                                              ? Colors.white.withOpacity(0.15) 
-                                              : Colors.white.withOpacity(0.65), // Unified Glass
-                                           borderRadius: BorderRadius.circular(30),
-                                           border: Border.all(
-                                             color: Colors.white.withOpacity(0.5), 
-                                             width: 1.0
+                                    ValueListenableBuilder<int>(
+                                      valueListenable: CoinService().coinNotifier,
+                                      builder: (context, coinBalance, _) => GestureDetector(
+                                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen())),
+                                        child: Container(
+                                           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                                           decoration: BoxDecoration(
+                                             color: isNight 
+                                                ? Colors.white.withOpacity(0.15) 
+                                                : Colors.white.withOpacity(0.65), // Unified Glass
+                                             borderRadius: BorderRadius.circular(30),
+                                             border: Border.all(
+                                               color: Colors.white.withOpacity(0.5), 
+                                               width: 1.0
+                                             ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.05),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                )
+                                              ],
                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(0.05),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 4),
-                                              )
-                                            ],
-                                         ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const IslandCoinIcon(size: 22),
-                                              const SizedBox(width: 6),
-                                               Text(
-                                                '$coinBalance',
-                                                style: AppTextStyles.body.copyWith(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: isNight ? Colors.white : AppColors.textMain,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const IslandCoinIcon(size: 22),
+                                                const SizedBox(width: 6),
+                                                 Text(
+                                                  '$coinBalance',
+                                                  style: AppTextStyles.body.copyWith(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: isNight ? Colors.white : AppColors.textMain,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
+                                              ],
+                                            ),
+                                        ),
                                       ),
                                     ),
                                 ],

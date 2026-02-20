@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../services/point_service.dart';
+import '../../../../core/services/coin_service.dart';
 import '../../../../services/trial_service.dart';
 import '../../../../core/data/shared_preferences_provider.dart';
 import '../data/theme_catalog.dart';
@@ -13,9 +13,8 @@ class HousesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(sharedPreferencesProvider);
-    final pointService = PointService(prefs);
     final trialService = TrialService(prefs);
-    final currentPoints = pointService.getCurrentPoints();
+    final currentPoints = CoinService().coinNotifier.value;
     final canShowTrial = trialService.canShowTrialOfferToday();
 
     return Scaffold(

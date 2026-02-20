@@ -8,7 +8,8 @@ import 'coin_service.dart';
 /// Products:
 ///   - island_coins_100  (consumable)
 ///   - island_coins_500  (consumable)
-///   - island_remove_ads (non-consumable)
+///   - island_coins_1000 (consumable)
+///   - island_coins_2500 (consumable)
 class BillingService {
   BillingService._();
   static final BillingService _instance = BillingService._();
@@ -20,7 +21,6 @@ class BillingService {
     'island_coins_500',
     'island_coins_1000',
     'island_coins_2500',
-    'island_remove_ads',
   };
 
   static const Set<String> _consumableIds = {
@@ -109,21 +109,6 @@ class BillingService {
     return _iap.buyConsumable(purchaseParam: param, autoConsume: true);
   }
 
-  /// Buy a non-consumable product (remove ads).
-  Future<bool> buyNonConsumable(String productId) async {
-    assert(productId == 'island_remove_ads');
-    final product = _findProduct(productId);
-    if (product == null) return false;
-
-    final param = PurchaseParam(productDetails: product);
-    return _iap.buyNonConsumable(purchaseParam: param);
-  }
-
-  /// Restore non-consumable purchases (e.g., remove ads).
-  Future<void> restorePurchases() async {
-    if (!_isAvailable) return;
-    await _iap.restorePurchases();
-  }
 
   // ── Purchase Stream Handler ──────────────────────────────────
 
@@ -170,9 +155,6 @@ class BillingService {
       if (reward > 0) {
         await _coinService.addCoins(reward);
       }
-    } else if (id == 'island_remove_ads') {
-      // Non-consumable: remove ads
-      await _coinService.setRemoveAds(true);
     }
   }
 

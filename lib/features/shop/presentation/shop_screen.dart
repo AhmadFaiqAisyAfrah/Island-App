@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../services/point_service.dart';
-import '../../../../core/data/shared_preferences_provider.dart';
 import '../../../../core/widgets/island_coin_icon.dart';
 import '../../../../core/services/billing_service.dart';
 import '../../../../core/services/coin_service.dart';
@@ -33,8 +31,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   final CoinService _coinService = CoinService();
 
   bool _loading = true;
-  bool _adsRemoved = false;
-  int _coins = 0;
+  bool _isAdLoading = false;
 
   @override
   void initState() {
@@ -50,19 +47,22 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   }
 
   Future<void> _refreshState() async {
+    // Reload coin notifier from disk so ValueListenableBuilder updates
     final coins = await _coinService.getCoins();
-    final adsRemoved = await _coinService.getRemoveAds();
+    _coinService.coinNotifier.value = coins;
 
     if (mounted) {
       setState(() {
-        _coins = coins;
-        _adsRemoved = adsRemoved;
         _loading = false;
       });
     }
   }
 
   Future<void> _watchAdForPoints() async {
+    if (_isAdLoading) return;
+    
+    setState(() => _isAdLoading = true);
+
     final adShown = await AdService().showRewardedAd(
       onEarned: (reward) async {
         final points = 50;
@@ -78,13 +78,18 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
         }
       },
     );
-    if (!adShown && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ad not available. Try again later.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+
+    if (mounted) {
+      setState(() => _isAdLoading = false);
+      
+      if (!adShown) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ad not available. Try again later.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -97,13 +102,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     return list;
   }
 
-  ProductDetails? get _removeAdsProduct {
-    try {
-      return _billing.products.firstWhere((p) => p.id == 'island_remove_ads');
-    } catch (_) {
-      return null;
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -133,13 +132,17 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Balance ──
-                  _BalanceHeader(points: _coins),
+                  // ── Balance ── (reactive via CoinService.coinNotifier)
+                  ValueListenableBuilder<int>(
+                    valueListenable: CoinService().coinNotifier,
+                    builder: (context, coins, _) => _BalanceHeader(points: coins),
+                  ),
                   const SizedBox(height: 16),
 
                   // ── Watch Ad for Points ──
                   _WatchAdCard(
-                    onWatchAd: () => _watchAdForPoints(),
+                    onWatchAd: _watchAdForPoints,
+                    isLoading: _isAdLoading,
                   ),
                   const SizedBox(height: 24),
 
@@ -168,17 +171,6 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                             _billing.buyConsumable(product.id),
                       );
                     }),
-
-                  const SizedBox(height: 8),
-
-                  // ── Remove Ads ──
-                  if (_removeAdsProduct != null)
-                    _RemoveAdsCard(
-                      price: _removeAdsProduct!.price,
-                      purchased: _adsRemoved,
-                      onBuy: () =>
-                          _billing.buyNonConsumable('island_remove_ads'),
-                    ),
 
                   const SizedBox(height: 24),
 
@@ -277,15 +269,19 @@ class _BalanceHeader extends StatelessWidget {
 
 class _WatchAdCard extends StatelessWidget {
   final VoidCallback onWatchAd;
+  final bool isLoading;
 
-  const _WatchAdCard({required this.onWatchAd});
+  const _WatchAdCard({
+    required this.onWatchAd,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onWatchAd,
+        onTap: isLoading ? null : onWatchAd,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -303,12 +299,21 @@ class _WatchAdCard extends StatelessWidget {
                   color: const Color(0xFFFFD700).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.play_circle_outline_rounded,
-                    size: 28,
-                    color: Color(0xFFFFB800),
-                  ),
+                child: Center(
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFFFB800),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.play_circle_outline_rounded,
+                          size: 28,
+                          color: Color(0xFFFFB800),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -335,11 +340,21 @@ class _WatchAdCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Color(0xFFFFB800),
-                size: 16,
-              ),
+              if (isLoading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFFFB800),
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Color(0xFFFFB800),
+                  size: 16,
+                ),
             ],
           ),
         ),
@@ -458,112 +473,7 @@ class _CoinBundleCard extends StatelessWidget {
   }
 }
 
-// ── Remove Ads Card ────────────────────────────────────────────
 
-class _RemoveAdsCard extends StatelessWidget {
-  final String price;
-  final bool purchased;
-  final VoidCallback onBuy;
-
-  const _RemoveAdsCard({
-    required this.price,
-    required this.purchased,
-    required this.onBuy,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: purchased
-              ? AppColors.islandGrass.withOpacity(0.3)
-              : Colors.grey.withOpacity(0.15),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: purchased
-                  ? AppColors.islandGrass.withOpacity(0.1)
-                  : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Icon(
-                purchased ? Icons.check_circle_rounded : Icons.block_rounded,
-                size: 28,
-                color: purchased ? AppColors.islandGrass : AppColors.textSub,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Remove Ads",
-                  style: AppTextStyles.subHeading.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMain,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  purchased
-                      ? "Ads removed. Thank you!"
-                      : "Enjoy Island without interruptions.",
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 12,
-                    color: AppColors.textSub,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (purchased)
-            Text(
-              "Active",
-              style: AppTextStyles.body.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.islandGrass,
-              ),
-            )
-          else
-            ElevatedButton(
-              onPressed: onBuy,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.textMain.withOpacity(0.85),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              ),
-              child: Text(
-                price,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Navigation Card ────────────────────────────────────────────
 

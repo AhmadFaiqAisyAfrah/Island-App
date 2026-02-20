@@ -11,6 +11,7 @@ import 'core/data/shared_preferences_provider.dart';
 import 'services/music_service.dart';
 import 'services/notification_service.dart';
 import 'services/ad_service.dart';
+import 'core/services/coin_service.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/onboarding/data/onboarding_storage.dart';
@@ -29,6 +30,9 @@ void main() async {
 
   // Initialize AdService (preload ads)
   AdService().init();
+
+  // Initialize CoinService (load balance, migrate legacy data)
+  await CoinService().init();
 
   // Initialize Notification Service
   await NotificationService().init();
