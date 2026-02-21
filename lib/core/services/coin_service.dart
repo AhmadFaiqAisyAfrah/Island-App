@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'cloud_sync_service.dart';
 
 /// CoinService — Single Source of Truth for Island Coins.
 ///
 /// Uses SharedPreferences for persistence and ValueNotifier for reactive UI.
 /// All coin reads/writes MUST go through this service.
+/// Coin changes are pushed to Firestore via CloudSyncService (if logged in).
 class CoinService {
   static const _coinsKey = 'island_coins';
 
@@ -45,6 +47,7 @@ class CoinService {
     }
 
     _initialized = true;
+    debugPrint('[CoinService] init() complete — coins: ${coinNotifier.value}');
   }
 
   Future<SharedPreferences> get _preferences async {
@@ -77,11 +80,33 @@ class CoinService {
   }
 
   /// Set coin balance to an exact value.
-  /// Also updates [coinNotifier] for reactive UI.
+  /// Also updates [coinNotifier] for reactive UI and pushes to cloud.
   Future<void> setCoins(int value) async {
     final prefs = await _preferences;
     await prefs.setInt(_coinsKey, value);
     coinNotifier.value = value;
+
+    // Push to cloud (non-blocking, fails silently if not logged in)
+    CloudSyncService().pushCoinsIfLoggedIn(value);
+  }
+
+  // ── Controlled methods (no cloud push) ─────────────────────
+
+  /// Set coins from cloud data. Does NOT push back to cloud.
+  /// Used by CloudSyncService.applyCloudToLocal() to avoid infinite loop.
+  Future<void> setCoinsFromCloud(int value) async {
+    debugPrint('[CoinService] setCoinsFromCloud($value)');
+    final prefs = await _preferences;
+    await prefs.setInt(_coinsKey, value);
+    coinNotifier.value = value;
+  }
+
+  /// Reset to guest mode (0 coins). Called after logout confirmation.
+  /// Does NOT push to cloud (user is already signed out).
+  Future<void> resetToGuest() async {
+    debugPrint('[CoinService] resetToGuest() — coins → 0');
+    final prefs = await _preferences;
+    await prefs.setInt(_coinsKey, 0);
+    coinNotifier.value = 0;
   }
 }
-

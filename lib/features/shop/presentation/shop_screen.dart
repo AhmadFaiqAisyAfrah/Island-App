@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -32,6 +33,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
   bool _loading = true;
   bool _isAdLoading = false;
+  String? _billingError;  // null = OK, non-null = error message
 
   @override
   void initState() {
@@ -40,9 +42,21 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   }
 
   Future<void> _initBilling() async {
+    debugPrint('[Shop] ▶ _initBilling() STARTED');
     _billing.onPurchaseUpdated = _refreshState;
 
     await _billing.init();
+    debugPrint('[Shop] ✔ _billing.init() complete');
+    debugPrint('[Shop] billing.isAvailable: ${_billing.isAvailable}');
+    debugPrint('[Shop] billing.products.length: ${_billing.products.length}');
+
+    // Determine error state
+    if (!_billing.isAvailable) {
+      _billingError = 'Google Play is not available on this device.';
+    } else if (_billing.products.isEmpty) {
+      _billingError = 'Coin packages not found. Check Play Console product IDs.';
+    }
+
     await _refreshState();
   }
 
@@ -102,6 +116,63 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     return list;
   }
 
+  bool get _isGuest => FirebaseAuth.instance.currentUser == null;
+
+  /// Guards purchase behind login. Shows dialog if guest.
+  void _handlePurchase(String productId) {
+    if (_isGuest) {
+      _showLoginRequiredDialog();
+      return;
+    }
+    _billing.buyConsumable(productId);
+  }
+
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.skyBottom,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Sign in required',
+          style: AppTextStyles.subHeading.copyWith(fontSize: 18),
+        ),
+        content: Text(
+          'Purchases are permanently saved to your account.\nGuest mode does not support coin purchases.',
+          style: AppTextStyles.body.copyWith(
+            fontSize: 14,
+            color: AppColors.textSub,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                color: AppColors.textSub,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context); // Go back to drawer to sign in
+            },
+            child: Text(
+              'Sign in',
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                color: AppColors.islandGrass,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
 
   @override
@@ -158,17 +229,19 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (_coinProducts.isEmpty)
-                    _UnavailableNotice(
-                        message: "Coin packages are loading…")
+                  if (_billingError != null)
+                    _UnavailableNotice(message: _billingError!)
+                  else if (_coinProducts.isEmpty)
+                    const _UnavailableNotice(
+                        message: "No coin packages available.")
                   else
                     ..._coinProducts.map((product) {
                       final coins = _extractCoinAmount(product.id);
                       return _CoinBundleCard(
                         coins: coins,
                         price: product.price,
-                        onBuy: () =>
-                            _billing.buyConsumable(product.id),
+                        isGuest: _isGuest,
+                        onBuy: () => _handlePurchase(product.id),
                       );
                     }),
 
@@ -388,11 +461,13 @@ class _CoinBundleCard extends StatelessWidget {
   final int coins;
   final String price;
   final VoidCallback onBuy;
+  final bool isGuest;
 
   const _CoinBundleCard({
     required this.coins,
     required this.price,
     required this.onBuy,
+    this.isGuest = false,
   });
 
   @override
@@ -401,9 +476,9 @@ class _CoinBundleCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.7),
+        color: Colors.white.withValues(alpha: isGuest ? 0.4 : 0.7),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.islandGrass.withOpacity(0.2)),
+        border: Border.all(color: AppColors.islandGrass.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -414,7 +489,7 @@ class _CoinBundleCard extends StatelessWidget {
               color: const Color(0xFFFFF8E7),
               borderRadius: BorderRadius.circular(16),
               border:
-                  Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
+                  Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
             ),
             child: const Center(
               child: IslandCoinIcon(size: 36),
@@ -434,14 +509,24 @@ class _CoinBundleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  price,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSub,
+                if (isGuest)
+                  Text(
+                    'Login required',
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 12,
+                      color: Colors.red.shade300,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                else
+                  Text(
+                    price,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSub,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -450,7 +535,9 @@ class _CoinBundleCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onBuy,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.islandGrass,
+                backgroundColor: isGuest
+                    ? AppColors.islandGrass.withValues(alpha: 0.4)
+                    : AppColors.islandGrass,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(

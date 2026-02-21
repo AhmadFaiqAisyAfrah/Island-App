@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -20,31 +21,37 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  /// Pure Google Sign-In. Returns User on success, null on cancel/error.
+  /// NO cloud sync — drawer handles that via dialogs.
   Future<User?> signInWithGoogle() async {
     try {
-      // Trigger the authentication flow
+      debugPrint('[AuthService] ▶ signInWithGoogle() STARTED');
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
       if (googleUser == null) {
-        // The user canceled the sign-in
+        debugPrint('[AuthService] ✖ User cancelled sign-in');
         return null;
       }
 
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      debugPrint('[AuthService] ✔ Google account: ${googleUser.email}');
 
-      // Create a new credential
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Once signed in, return the UserCredential
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      return userCredential.user;
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+      debugPrint('[AuthService] ✔ Firebase sign-in complete — uid: ${user?.uid}');
+
+      // NO auto-sync here. Drawer orchestrates via dialogs.
+      return user;
     } catch (e) {
-      // Handle errors gracefully
-      print("Error signing in with Google: $e");
+      debugPrint('[AuthService] ❌ signInWithGoogle error: $e');
       return null;
     }
   }
@@ -52,5 +59,6 @@ class AuthService {
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
+    debugPrint('[AuthService] ✔ Signed out');
   }
 }

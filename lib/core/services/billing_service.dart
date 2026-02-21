@@ -56,11 +56,20 @@ class BillingService {
 
   /// Initialize billing. Call once at app start.
   Future<void> init() async {
-    if (_initialized) return;
+    if (_initialized) {
+      debugPrint('[Billing] ⚠ Already initialized, skipping');
+      return;
+    }
     _initialized = true;
+    debugPrint('[Billing] ▶ init() STARTED');
+    debugPrint('[Billing] Product IDs: $_productIds');
 
     _isAvailable = await _iap.isAvailable();
-    if (!_isAvailable) return;
+    debugPrint('[Billing] isAvailable: $_isAvailable');
+    if (!_isAvailable) {
+      debugPrint('[Billing] ✖ Billing NOT available — aborting');
+      return;
+    }
 
     // Listen to purchase updates
     _subscription = _iap.purchaseStream.listen(
@@ -68,23 +77,34 @@ class BillingService {
       onDone: _onStreamDone,
       onError: _onStreamError,
     );
+    debugPrint('[Billing] ✔ Purchase stream listener attached');
 
     await loadProducts();
+    debugPrint('[Billing] ✅ init() COMPLETE — ${products.length} products loaded');
   }
 
   /// Load product details from the store.
   Future<void> loadProducts() async {
-    if (!_isAvailable) return;
-
-    final response = await _iap.queryProductDetails(_productIds);
-
-    if (response.error != null) {
-      debugPrint('[Billing] Product query error: ${response.error!.message}');
+    if (!_isAvailable) {
+      debugPrint('[Billing] loadProducts() skipped — billing not available');
       return;
     }
 
-    if (response.notFoundIDs.isNotEmpty) {
-      debugPrint('[Billing] Products not found: ${response.notFoundIDs}');
+    debugPrint('[Billing] ▶ queryProductDetails() calling with: $_productIds');
+    final response = await _iap.queryProductDetails(_productIds);
+
+    debugPrint('[Billing] === PRODUCT RESPONSE ===' );
+    debugPrint('[Billing] Found: ${response.productDetails.length}');
+    debugPrint('[Billing] Not found IDs: ${response.notFoundIDs}');
+    debugPrint('[Billing] Error: ${response.error?.message ?? "none"}');
+
+    if (response.error != null) {
+      debugPrint('[Billing] ✖ Product query error: ${response.error!.message}');
+      return;
+    }
+
+    for (final p in response.productDetails) {
+      debugPrint('[Billing]   → ${p.id}: ${p.price} (${p.title})');
     }
 
     products = response.productDetails;

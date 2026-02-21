@@ -33,6 +33,7 @@ void main() async {
 
   // Initialize CoinService (load balance, migrate legacy data)
   await CoinService().init();
+  debugPrint('[main] 🚀 App startup — CoinService.coinNotifier: ${CoinService().coinNotifier.value}');
 
   // Initialize Notification Service
   await NotificationService().init();
