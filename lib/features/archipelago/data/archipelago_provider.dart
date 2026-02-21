@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/daily_progress.dart';
 import 'archipelago_repository.dart';
 
@@ -19,11 +18,22 @@ class ArchipelagoNotifier extends StateNotifier<List<DailyProgress>> {
     _loadInitialData();
   }
 
+  /// Guard: blocks notifier-triggered cloud push during history replacement.
+  bool _isReplacingHistory = false;
+  bool get isReplacingHistory => _isReplacingHistory;
+
   Future<void> _loadInitialData() async {
     final data = await _repository.loadHistory();
     // Sort by date descending (newest first) for UI
     data.sort((a, b) => b.date.compareTo(a.date));
     state = data;
+  }
+
+  /// Public re-read from SharedPreferences into Riverpod state.
+  /// Called by drawer after cloud-to-local sync to rehydrate UI.
+  /// Does NOT trigger pushEntryIfLoggedIn (no save/write, just state set).
+  Future<void> reloadFromStorage() async {
+    await _loadInitialData();
   }
 
   Future<void> addSession({
@@ -39,6 +49,24 @@ class ArchipelagoNotifier extends StateNotifier<List<DailyProgress>> {
     // Reload state
     _loadInitialData(); 
   }
+
+  /// Replaces local history with cloud data. Guarded.
+  Future<void> replaceHistory(List<DailyProgress> entries) async {
+    _isReplacingHistory = true;
+    try {
+      await _repository.replaceHistory(entries);
+      entries.sort((a, b) => b.date.compareTo(a.date));
+      state = entries;
+    } finally {
+      _isReplacingHistory = false;
+    }
+  }
+
+  /// Clears local history (logout → guest reset).
+  Future<void> clearHistory() async {
+    await _repository.clearHistory();
+    state = [];
+  }
 }
 
 final archipelagoProvider = StateNotifierProvider<ArchipelagoNotifier, List<DailyProgress>>((ref) {
@@ -51,12 +79,19 @@ class _InMemoryArchipelagoRepository implements ArchipelagoRepository {
   final List<DailyProgress> _data = [];
 
   @override
-  // ignore: unused_field
-  SharedPreferences get _prefs => throw UnimplementedError("Memory repo has no prefs");
-
-  @override
   Future<List<DailyProgress>> loadHistory() async {
     return List.from(_data);
+  }
+
+  @override
+  Future<void> clearHistory() async {
+    _data.clear();
+  }
+
+  @override
+  Future<void> replaceHistory(List<DailyProgress> entries) async {
+    _data.clear();
+    _data.addAll(entries);
   }
 
   @override

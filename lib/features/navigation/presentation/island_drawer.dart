@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../archipelago/presentation/archipelago_screen.dart';
+import '../../archipelago/data/archipelago_repository.dart';
+import '../../archipelago/data/archipelago_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../core/services/coin_service.dart';
 import '../../../../core/services/cloud_sync_service.dart';
+import '../../../../core/services/journal_sync_service.dart';
 import '../../shop/presentation/shop_screen.dart';
 import 'theme_selector_dialog.dart';
 
@@ -171,6 +175,10 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
       final authService = ref.read(authServiceProvider);
       final localCoins = CoinService().coinNotifier.value;
 
+      // Read local journal entries
+      final prefs = await SharedPreferences.getInstance();
+      final localEntries = await ArchipelagoRepository(prefs).loadHistory();
+
       // Step 1: Pure Google sign-in (no sync)
       final user = await authService.signInWithGoogle();
       if (user == null) {
@@ -180,17 +188,26 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
 
       if (!mounted) return;
 
-      // Step 2: Fetch cloud data (pure read)
-      final cloudCoins = await CloudSyncService().fetchCloudCoins(user);
+      // Step 2: Fetch cloud state (parallel, independent)
+      final results = await Future.wait([
+        CloudSyncService().fetchCloudCoins(user),
+        JournalSyncService().cloudJournalExists(user),
+      ]);
+      final cloudCoins = results[0] as int?;
+      final hasCloudJournal = results[1] as bool;
 
       if (!mounted) return;
 
-      if (cloudCoins != null) {
-        // ── CASE A: Cloud doc exists ──
+      // Step 3: Decision logic — combined boolean
+      final hasExistingAccountData =
+          (cloudCoins != null) || hasCloudJournal;
+
+      if (hasExistingAccountData) {
+        // ── CASE A: Cloud account exists ──
         final confirmed = await _showLoginDialogCaseA(
           context,
           localCoins: localCoins,
-          cloudCoins: cloudCoins,
+          cloudCoins: cloudCoins ?? 0,
         );
 
         if (confirmed != true) {
@@ -199,10 +216,13 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
           return;
         }
 
-        // Confirm → cloud wins
+        // Confirm → cloud wins (sequential, independent calls)
         await CloudSyncService().applyCloudToLocal(user);
+        await JournalSyncService().applyCloudToLocal(user);
+        // Rehydrate Riverpod state from updated SharedPreferences
+        await ref.read(archipelagoProvider.notifier).reloadFromStorage();
       } else {
-        // ── CASE B: First login (no cloud doc) ──
+        // ── CASE B: First login (no cloud data) ──
         final confirmed = await _showLoginDialogCaseB(
           context,
           localCoins: localCoins,
@@ -213,11 +233,12 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
           return;
         }
 
-        // Confirm → upload local to cloud
+        // Confirm → atomic upload (both must succeed)
         try {
           await CloudSyncService().uploadLocalToCloud(user, localCoins);
+          await JournalSyncService().uploadLocalToCloud(user, localEntries);
         } catch (_) {
-          // Upload failed → rollback login
+          // Rollback: revert login, state unchanged
           await authService.signOut();
           return;
         }
@@ -241,9 +262,11 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
     if (confirmed != true) return;
 
     final authService = ref.read(authServiceProvider);
-    // Order: signOut first, then reset local
+    // Order: signOut first, then reset local (coins + journal storage + journal UI state)
     await authService.signOut();
     await CoinService().resetToGuest();
+    await JournalSyncService().resetToGuest();       // clears SharedPreferences
+    ref.read(archipelagoProvider.notifier).clearHistory(); // clears Riverpod state
   }
 
   // ── Dialogs ─────────────────────────────────────────────────
@@ -269,7 +292,7 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your guest data will be replaced with your saved account data.',
+              'Your guest data (coins + journal) will be replaced with your saved account data.',
               style: AppTextStyles.body.copyWith(
                 fontSize: 14,
                 color: AppColors.textSub,
@@ -341,7 +364,7 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your guest data will be transferred to this account.',
+              'Your guest data (coins + journal) will be transferred to this account.',
               style: AppTextStyles.body.copyWith(
                 fontSize: 14,
                 color: AppColors.textSub,
@@ -404,7 +427,7 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Guest mode will start from 0 coins.',
+              'Guest mode will start fresh — 0 coins and no journal history.',
               style: AppTextStyles.body.copyWith(
                 fontSize: 14,
                 color: AppColors.textSub,
@@ -412,7 +435,7 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Your account progress remains saved in the cloud.',
+              'Your account data remains saved in the cloud.',
               style: AppTextStyles.body.copyWith(
                 fontSize: 14,
                 color: AppColors.textSub,

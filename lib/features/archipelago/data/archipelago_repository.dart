@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/daily_progress.dart';
+import '../../../core/services/journal_sync_service.dart';
 
 class ArchipelagoRepository {
   static const String _storageKey = 'archipelago_progress';
@@ -84,6 +85,20 @@ class ArchipelagoRepository {
 
     // Persist
     final String encoded = json.encode(updatedHistory.map((e) => e.toMap()).toList());
+    await _prefs.setString(_storageKey, encoded);
+
+    // Real-time push to cloud (fire-and-forget, guarded)
+    JournalSyncService().pushEntryIfLoggedIn(todayProgress);
+  }
+
+  /// Clears all local journal history.
+  Future<void> clearHistory() async {
+    await _prefs.remove(_storageKey);
+  }
+
+  /// Overwrites local journal with the given entries.
+  Future<void> replaceHistory(List<DailyProgress> entries) async {
+    final encoded = json.encode(entries.map((e) => e.toMap()).toList());
     await _prefs.setString(_storageKey, encoded);
   }
 }
