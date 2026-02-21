@@ -9,6 +9,7 @@ import 'cloud_sync_service.dart';
 /// Coin changes are pushed to Firestore via CloudSyncService (if logged in).
 class CoinService {
   static const _coinsKey = 'island_coins';
+  static const _removeAdsKey = 'island_remove_ads';
 
   // Legacy key from PointService — used for one-time data migration
   static const _legacyPointsKey = 'total_points';
@@ -108,5 +109,17 @@ class CoinService {
     final prefs = await _preferences;
     await prefs.setInt(_coinsKey, 0);
     coinNotifier.value = 0;
+  }
+
+  /// Check if ads have been removed.
+  Future<bool> getRemoveAds() async {
+    final prefs = await _preferences;
+    return prefs.getBool(_removeAdsKey) ?? false;
+  }
+
+  /// Set ad-removal state.
+  Future<void> setRemoveAds(bool value) async {
+    final prefs = await _preferences;
+    await prefs.setBool(_removeAdsKey, value);
   }
 }
