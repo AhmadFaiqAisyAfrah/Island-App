@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/archipelago/data/archipelago_repository.dart';
 import 'features/archipelago/data/archipelago_provider.dart';
 import 'core/data/shared_preferences_provider.dart';
+import 'core/services/theme_unlock_service.dart';
 import 'services/music_service.dart';
 import 'services/notification_service.dart';
 import 'services/ad_service.dart';
@@ -33,6 +34,7 @@ void main() async {
 
   // Initialize CoinService (load balance, migrate legacy data)
   await CoinService().init();
+  await ThemeUnlockService().init();
   debugPrint('[main] 🚀 App startup — CoinService.coinNotifier: ${CoinService().coinNotifier.value}');
 
   // Initialize Notification Service

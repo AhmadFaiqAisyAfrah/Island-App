@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
-import '../../../../config/dev_flags.dart'; // Temporary development override for design/testing
 import '../../../../core/services/coin_service.dart';
+import '../../../../core/services/theme_unlock_service.dart';
 import '../../shop/data/theme_catalog.dart';
 import '../../shop/presentation/shop_screen.dart';
-import '../../../../domain/monetization/monetization_types.dart';
 
-class ThemeSeasonalPage extends ConsumerWidget {
+class ThemeSeasonalPage extends ConsumerStatefulWidget {
   const ThemeSeasonalPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ThemeSeasonalPage> createState() => _ThemeSeasonalPageState();
+}
+
+class _ThemeSeasonalPageState extends ConsumerState<ThemeSeasonalPage> {
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(themeProvider);
-    final currentPoints = CoinService().coinNotifier.value;
 
     return Scaffold(
       backgroundColor: AppColors.skyBottom,
@@ -40,22 +44,14 @@ class ThemeSeasonalPage extends ConsumerWidget {
           itemCount: ThemeCatalog.seasonal.length,
           itemBuilder: (context, index) {
             final item = ThemeCatalog.seasonal[index];
-            // Temporary development override for design/testing
-            final isLocked = DEV_UNLOCK_ALL ? false : item.accessType != ItemAccessType.free;
-            final canAfford = item.pointCost != null 
-                ? currentPoints >= item.pointCost! 
-                : true;
+            final isLocked = !item.isDefault && !ThemeUnlockService().isUnlocked(item.id);
             final isSelected = _isSeasonSelected(state, item.id);
             
             return _ThemeCard(
               item: item,
               isSelected: isSelected,
               isLocked: isLocked,
-              canAfford: canAfford,
-              // Temporary development override for design/testing
-              onTap: isLocked
-                  ? () => _navigateToShop(context, item)
-                  : () => _selectSeason(ref, item.id),
+              onTap: () => _handleThemeTap(item),
             );
           },
         ),
@@ -64,7 +60,7 @@ class ThemeSeasonalPage extends ConsumerWidget {
   }
 
   bool _isSeasonSelected(ThemeState state, String itemId) {
-    final seasonMap = {
+    const seasonMap = {
       'season_normal': AppSeason.normal,
       'season_sakura': AppSeason.sakura,
       'season_autumn': AppSeason.autumn,
@@ -73,8 +69,8 @@ class ThemeSeasonalPage extends ConsumerWidget {
     return seasonMap[itemId] == state.season;
   }
 
-  void _selectSeason(WidgetRef ref, String itemId) {
-    final seasonMap = {
+  void _selectSeason(String itemId) {
+    const seasonMap = {
       'season_normal': AppSeason.normal,
       'season_sakura': AppSeason.sakura,
       'season_autumn': AppSeason.autumn,
@@ -86,10 +82,102 @@ class ThemeSeasonalPage extends ConsumerWidget {
     }
   }
 
-  void _navigateToShop(BuildContext context, MonetizableThemeItem item) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ShopScreen()),
+  void _handleThemeTap(MonetizableThemeItem item) {
+    // Default or already unlocked → apply immediately
+    if (item.isDefault || ThemeUnlockService().isUnlocked(item.id)) {
+      _selectSeason(item.id);
+      return;
+    }
+
+    // Guest mode → login required
+    if (FirebaseAuth.instance.currentUser == null) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.skyBottom,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text("Login Required", style: AppTextStyles.heading.copyWith(fontSize: 18)),
+          content: Text(
+            "You need to log in to unlock themes.",
+            style: AppTextStyles.body.copyWith(color: AppColors.textSub),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text("OK", style: AppTextStyles.subHeading.copyWith(fontSize: 14)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Insufficient coins → go to shop
+    final coins = CoinService().coinNotifier.value;
+    if (coins < item.price) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.skyBottom,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text("Not Enough Coins", style: AppTextStyles.heading.copyWith(fontSize: 18)),
+          content: Text(
+            "You need ${item.price} coins to unlock ${item.name}.\nYou currently have $coins coins.",
+            style: AppTextStyles.body.copyWith(color: AppColors.textSub),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text("Cancel", style: AppTextStyles.subHeading.copyWith(fontSize: 14)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen()));
+              },
+              child: Text("Go to Shop", style: AppTextStyles.subHeading.copyWith(fontSize: 14, color: AppColors.islandGrass)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Enough coins → confirmation dialog
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.skyBottom,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("Unlock Theme", style: AppTextStyles.heading.copyWith(fontSize: 18)),
+        content: Text(
+          "Unlock ${item.name} for ${item.price} coins?",
+          style: AppTextStyles.body.copyWith(color: AppColors.textSub),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text("Cancel", style: AppTextStyles.subHeading.copyWith(fontSize: 14)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await ThemeUnlockService().unlockTheme(item.id, item.price);
+              if (success && mounted) {
+                _selectSeason(item.id);
+                setState(() {}); // Rebuild to reflect new unlock state
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${item.name} unlocked!'),
+                    backgroundColor: AppColors.islandGrass,
+                  ),
+                );
+              }
+            },
+            child: Text("Unlock", style: AppTextStyles.subHeading.copyWith(fontSize: 14, color: AppColors.islandGrass)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -98,14 +186,12 @@ class _ThemeCard extends StatelessWidget {
   final MonetizableThemeItem item;
   final bool isSelected;
   final bool isLocked;
-  final bool canAfford;
   final VoidCallback onTap;
 
   const _ThemeCard({
     required this.item,
     required this.isSelected,
     required this.isLocked,
-    required this.canAfford,
     required this.onTap,
   });
 
@@ -118,11 +204,11 @@ class _ThemeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
-            color: isLocked ? Colors.grey.withOpacity(0.3) : Colors.white.withOpacity(0.5),
+            color: isLocked ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
             borderRadius: BorderRadius.circular(16),
             border: isSelected
                 ? Border.all(color: AppColors.islandGrass, width: 3)
-                : Border.all(color: isLocked ? Colors.grey.withOpacity(0.4) : Colors.white.withOpacity(0.2), width: 1),
+                : Border.all(color: isLocked ? Colors.grey.withOpacity(0.3) : Colors.white.withOpacity(0.2), width: 1),
             boxShadow: isSelected
                 ? [BoxShadow(color: AppColors.islandGrass.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
                 : [],
@@ -137,7 +223,7 @@ class _ThemeCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       Container(
-                        color: item.accentColor.withOpacity(isLocked ? 0.1 : 0.3),
+                        color: item.accentColor.withOpacity(isLocked ? 0.15 : 0.3),
                         child: item.assetPath.isNotEmpty
                             ? Image.asset(
                                 item.assetPath,
@@ -148,28 +234,32 @@ class _ThemeCard extends StatelessWidget {
                       ),
                       if (isLocked)
                         Container(
-                          color: Colors.black.withOpacity(0.4),
+                          color: Colors.black.withOpacity(0.35),
                           child: Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  _getLockIcon(item.accessType),
+                                  Icons.lock_rounded,
                                   color: Colors.white.withOpacity(0.9),
-                                  size: 24,
+                                  size: 22,
                                 ),
-                                if (item.pointCost != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      "${item.pointCost}",
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.monetization_on_rounded, color: Colors.amber.withOpacity(0.9), size: 14),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      "${item.price}",
                                       style: TextStyle(
-                                        color: Colors.white.withOpacity(0.9),
-                                        fontSize: 10,
+                                        color: Colors.white.withOpacity(0.95),
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -193,40 +283,18 @@ class _ThemeCard extends StatelessWidget {
                   child: Container(
                     width: double.infinity,
                     alignment: Alignment.center,
-                    color: isLocked ? Colors.grey.withOpacity(0.2) : Colors.white.withOpacity(0.9),
+                    color: isLocked ? Colors.grey.withOpacity(0.1) : Colors.white.withOpacity(0.9),
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          item.name,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.body.copyWith(
-                            fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            height: 1.1,
-                            color: isLocked ? Colors.grey : AppColors.textMain,
-                          ),
-                          maxLines: 2,
-                        ),
-                        if (isLocked)
-                          Container(
-                            margin: const EdgeInsets.only(top: 2),
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: _getAccessColor(item.accessType).withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              _getAccessLabel(item.accessType),
-                              style: TextStyle(
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                color: _getAccessColor(item.accessType),
-                              ),
-                            ),
-                          ),
-                      ],
+                    child: Text(
+                      item.name,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        height: 1.1,
+                        color: isLocked ? Colors.grey : AppColors.textMain,
+                      ),
+                      maxLines: 2,
                     ),
                   ),
                 ),
@@ -238,53 +306,12 @@ class _ThemeCard extends StatelessWidget {
     );
   }
 
-  IconData _getLockIcon(ItemAccessType type) {
-    switch (type) {
-      case ItemAccessType.pointUnlock:
-        return Icons.stars;
-      case ItemAccessType.premiumPurchase:
-        return Icons.diamond;
-      case ItemAccessType.trial:
-        return Icons.timer;
-      default:
-        return Icons.lock;
-    }
-  }
-
-  String _getAccessLabel(ItemAccessType type) {
-    switch (type) {
-      case ItemAccessType.pointUnlock:
-        return "COINS";
-      case ItemAccessType.premiumPurchase:
-        return "PREMIUM";
-      case ItemAccessType.trial:
-        return "TRY";
-      default:
-        return "LOCKED";
-    }
-  }
-
-  Color _getAccessColor(ItemAccessType type) {
-    switch (type) {
-      case ItemAccessType.pointUnlock:
-        return Colors.orange;
-      case ItemAccessType.premiumPurchase:
-        return Colors.purple;
-      case ItemAccessType.trial:
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
-
   Widget _buildPlaceholder(MonetizableThemeItem item) {
-    IconData iconData = Icons.calendar_today;
-    
     return Container(
       color: item.accentColor.withOpacity(0.3),
       child: Center(
         child: Icon(
-          iconData,
+          Icons.calendar_today,
           size: 32,
           color: item.accentColor.withOpacity(0.8),
         ),

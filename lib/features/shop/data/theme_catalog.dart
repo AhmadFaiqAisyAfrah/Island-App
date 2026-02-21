@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../domain/monetization/monetization.dart';
 
-/// Extended Theme Item with Monetization Metadata
+/// Theme Item with Monetization Metadata
 /// 
-/// Wraps existing theme data with monetization state.
-/// Used in Shop and Theme Selector for visual indicators.
+/// Simple model: price (int) + isDefault (bool).
+/// Default themes are always unlocked. Non-default require coin purchase.
 class MonetizableThemeItem {
-  /// Unique identifier (matches theme identifiers)
+  /// Unique identifier (matches theme enum values)
   final String id;
   
   /// Display name
@@ -18,52 +17,32 @@ class MonetizableThemeItem {
   /// Accent color for the theme
   final Color accentColor;
   
-  /// Access type (free, trial, pointUnlock, premium)
-  final ItemAccessType accessType;
+  /// Price in coins (0 for free/default themes)
+  final int price;
   
-  /// Points required to unlock (if pointUnlock)
-  final int? pointCost;
-  
-  /// Whether this item supports trial
-  final bool supportsTrial;
+  /// Whether this is a default (always-unlocked) theme
+  final bool isDefault;
   
   /// Category for grouping
   final String category;
-  
-  /// Description for shop display
-  final String description;
 
   const MonetizableThemeItem({
     required this.id,
     required this.name,
     required this.assetPath,
     required this.accentColor,
-    this.accessType = ItemAccessType.free,
-    this.pointCost,
-    this.supportsTrial = false,
+    this.price = 0,
+    this.isDefault = false,
     this.category = 'general',
-    this.description = '',
   });
 
-  /// Check if this item is currently locked
-  bool get isLocked => accessType != ItemAccessType.free;
-  
-  /// Check if unlockable with points
-  bool get isPointUnlock => accessType == ItemAccessType.pointUnlock && pointCost != null;
-  
-  /// Check if requires real money purchase
-  bool get isPremium => accessType == ItemAccessType.premiumPurchase;
-  
-  /// Check if trial is available
-  bool get isTrialAvailable => supportsTrial && accessType == ItemAccessType.trial;
-
   @override
-  String toString() => 'MonetizableThemeItem(id: $id, name: $name, accessType: $accessType)';
+  String toString() => 'MonetizableThemeItem(id: $id, name: $name, price: $price, isDefault: $isDefault)';
 }
 
-/// Theme Catalog - All available themes with monetization data
+/// Theme Catalog — All available themes with pricing
 /// 
-/// This is a static catalog. Real unlock state is stored in services.
+/// Static catalog. Real unlock state is stored in ThemeUnlockService.
 class ThemeCatalog {
   /// Seasonal Themes
   static List<MonetizableThemeItem> get seasonal => [
@@ -72,41 +51,36 @@ class ThemeCatalog {
       name: 'Original',
       assetPath: 'assets/themes/original_season.png',
       accentColor: Color(0xFFB5D491),
-      accessType: ItemAccessType.free,
+      price: 0,
+      isDefault: true,
       category: 'seasonal',
-      description: 'The classic Island experience',
     ),
     const MonetizableThemeItem(
       id: 'season_sakura',
       name: 'Sakura',
       assetPath: 'assets/themes/sakura_season.png',
       accentColor: Color(0xFFFFC0CB),
-      accessType: ItemAccessType.trial,
-      supportsTrial: true,
+      price: 300,
+      isDefault: false,
       category: 'seasonal',
-      description: 'Cherry blossom season',
     ),
     const MonetizableThemeItem(
       id: 'season_autumn',
       name: 'Autumn',
       assetPath: 'assets/themes/autumn_season.png',
       accentColor: Color(0xFFD48C70),
-      accessType: ItemAccessType.pointUnlock,
-      pointCost: 500,
-      supportsTrial: true,
+      price: 600,
+      isDefault: false,
       category: 'seasonal',
-      description: 'Warm autumn colors',
     ),
     const MonetizableThemeItem(
       id: 'season_winter',
       name: 'Winter',
       assetPath: 'assets/themes/winter_season.png',
       accentColor: Color(0xFFB0E0E6),
-      accessType: ItemAccessType.pointUnlock,
-      pointCost: 750,
-      supportsTrial: true,
+      price: 600,
+      isDefault: false,
       category: 'seasonal',
-      description: 'Serene winter landscape',
     ),
   ];
 
@@ -117,40 +91,36 @@ class ThemeCatalog {
       name: 'Ocean View',
       assetPath: 'assets/themes/default_sky.png',
       accentColor: Color(0xFF87CEEB),
-      accessType: ItemAccessType.free,
+      price: 0,
+      isDefault: true,
       category: 'environment',
-      description: 'Calm ocean backdrop',
     ),
     const MonetizableThemeItem(
       id: 'env_mountain',
       name: 'Mountain',
       assetPath: 'assets/themes/mountain.png',
       accentColor: Color(0xFF8FBC8F),
-      accessType: ItemAccessType.pointUnlock,
-      pointCost: 500,
-      supportsTrial: true,
+      price: 300,
+      isDefault: false,
       category: 'environment',
-      description: 'Majestic mountain view',
     ),
     const MonetizableThemeItem(
       id: 'env_beach',
       name: 'Tropical Beach',
       assetPath: 'assets/themes/beach.png',
       accentColor: Color(0xFFF4A460),
-      accessType: ItemAccessType.premiumPurchase,
+      price: 600,
+      isDefault: false,
       category: 'environment',
-      description: 'Premium tropical paradise',
     ),
     const MonetizableThemeItem(
       id: 'env_forest',
       name: 'Deep Forest',
       assetPath: 'assets/themes/forest.png',
       accentColor: Color(0xFF228B22),
-      accessType: ItemAccessType.pointUnlock,
-      pointCost: 600,
-      supportsTrial: true,
+      price: 900,
+      isDefault: false,
       category: 'environment',
-      description: 'Mystical forest setting',
     ),
   ];
 
@@ -161,40 +131,36 @@ class ThemeCatalog {
       name: 'Cozy Cottage',
       assetPath: 'assets/themes/house_default.png',
       accentColor: Color(0xFFD2B48C),
-      accessType: ItemAccessType.free,
+      price: 0,
+      isDefault: true,
       category: 'house',
-      description: 'Your starter home',
     ),
     const MonetizableThemeItem(
       id: 'house_adventure',
       name: 'Adventure House',
       assetPath: 'assets/themes/house_adventure.png',
       accentColor: Color(0xFFCD853F),
-      accessType: ItemAccessType.pointUnlock,
-      pointCost: 800,
-      supportsTrial: true,
+      price: 400,
+      isDefault: false,
       category: 'house',
-      description: 'For the explorer',
     ),
     const MonetizableThemeItem(
       id: 'house_stargazer',
       name: 'Stargazer Hut',
       assetPath: 'assets/themes/house_stargazer.png',
       accentColor: Color(0xFF4B0082),
-      accessType: ItemAccessType.premiumPurchase,
+      price: 800,
+      isDefault: false,
       category: 'house',
-      description: 'Premium celestial dwelling',
     ),
     const MonetizableThemeItem(
       id: 'house_forest',
       name: 'Forest Cabin',
       assetPath: 'assets/themes/house_forest.png',
       accentColor: Color(0xFF556B2F),
-      accessType: ItemAccessType.pointUnlock,
-      pointCost: 700,
-      supportsTrial: true,
+      price: 1200,
+      isDefault: false,
       category: 'house',
-      description: 'Hidden in the woods',
     ),
   ];
 

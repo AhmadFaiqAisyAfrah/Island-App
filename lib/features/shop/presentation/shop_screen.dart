@@ -7,9 +7,7 @@ import '../../../../core/widgets/island_coin_icon.dart';
 import '../../../../core/services/billing_service.dart';
 import '../../../../core/services/coin_service.dart';
 import '../../../../services/ad_service.dart';
-import 'seasonal_themes_page.dart';
-import 'environments_page.dart';
-import 'houses_page.dart';
+
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -79,7 +77,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
     final adShown = await AdService().showRewardedAd(
       onEarned: (reward) async {
-        final points = 50;
+        final points = 5;
         await _coinService.addCoins(points);
         await _refreshState();
         if (mounted) {
@@ -245,38 +243,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       );
                     }),
 
-                  const SizedBox(height: 24),
 
-                  // ── Navigation Cards ──
-                  _NavigationCard(
-                    title: "Seasons",
-                    iconText: "☃️",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const SeasonalThemesPage()),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _NavigationCard(
-                    title: "Environments",
-                    iconText: "🏔️",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const EnvironmentsPage()),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _NavigationCard(
-                    title: "Houses",
-                    iconText: "🏡",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const HousesPage()),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -404,7 +371,7 @@ class _WatchAdCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Watch an ad to earn 50 coins",
+                      "Watch an ad to earn 5 coins",
                       style: AppTextStyles.body.copyWith(
                         fontSize: 12,
                         color: AppColors.textSub,
@@ -561,73 +528,6 @@ class _CoinBundleCard extends StatelessWidget {
 }
 
 
-
-// ── Navigation Card ────────────────────────────────────────────
-
-class _NavigationCard extends StatelessWidget {
-  final String title;
-  final String iconText;
-  final VoidCallback onTap;
-
-  const _NavigationCard({
-    required this.title,
-    required this.iconText,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.withOpacity(0.1)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.islandGrass.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    iconText,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: AppTextStyles.subHeading.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMain,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: AppColors.textSub,
-                size: 16,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ── Unavailable Notice ─────────────────────────────────────────
 

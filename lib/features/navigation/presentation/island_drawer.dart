@@ -10,6 +10,7 @@ import '../../../../services/auth_service.dart';
 import '../../../../core/services/coin_service.dart';
 import '../../../../core/services/cloud_sync_service.dart';
 import '../../../../core/services/journal_sync_service.dart';
+import '../../../../core/services/theme_unlock_service.dart';
 import '../../shop/presentation/shop_screen.dart';
 import 'theme_selector_dialog.dart';
 
@@ -266,6 +267,7 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
     await authService.signOut();
     await CoinService().resetToGuest();
     await JournalSyncService().resetToGuest();       // clears SharedPreferences
+    await ThemeUnlockService().resetToGuest();       // clears unlocked themes
     ref.read(archipelagoProvider.notifier).clearHistory(); // clears Riverpod state
   }
 

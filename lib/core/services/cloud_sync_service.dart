@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'coin_service.dart';
+import 'theme_unlock_service.dart';
 
 /// CloudSyncService — Controlled cloud sync for Hybrid Migration.
 ///
@@ -96,6 +97,13 @@ class CloudSyncService {
           await prefs.setInt(entry.value, value);
         }
       }
+
+      // Apply unlocked themes
+      if (data.containsKey('unlockedThemes')) {
+        final ids = List<String>.from(data['unlockedThemes'] as List? ?? []);
+        await ThemeUnlockService().setUnlockedFromCloud(ids);
+        debugPrint('[CloudSync] applyCloudToLocal — unlockedThemes: $ids');
+      }
     } finally {
       _isApplyingCloudData = false;
     }
@@ -123,6 +131,9 @@ class CloudSyncService {
         if (entry.key == 'coins') continue; // already set above
         payload[entry.key] = prefs.getInt(entry.value) ?? 0;
       }
+
+      // Include unlocked themes
+      payload['unlockedThemes'] = ThemeUnlockService().getUnlockedIds();
 
       await doc.set(payload);
       debugPrint('[CloudSync] uploadLocalToCloud — coins: $coins');
