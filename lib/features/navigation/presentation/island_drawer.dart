@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../archipelago/presentation/archipelago_screen.dart';
 import '../../archipelago/data/archipelago_repository.dart';
@@ -268,6 +269,7 @@ class _AuthSectionState extends ConsumerState<_AuthSection> {
     await CoinService().resetToGuest();
     await JournalSyncService().resetToGuest();       // clears SharedPreferences
     await ThemeUnlockService().resetToGuest();       // clears unlocked themes
+    ref.read(themeProvider.notifier).resetToDefault(); // force default themes for guest
     ref.read(archipelagoProvider.notifier).clearHistory(); // clears Riverpod state
   }
 

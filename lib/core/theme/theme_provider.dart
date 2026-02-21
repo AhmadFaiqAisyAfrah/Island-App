@@ -122,6 +122,20 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
     state = state.copyWith(mode: newMode);
     _prefs.setInt(_keyMode, newMode.index);
   }
+
+  /// Reset theme selection to defaults (guest mode).
+  /// Preserves day/night mode (personal preference, not monetized).
+  void resetToDefault() {
+    state = state.copyWith(
+      season: AppSeason.normal,
+      environment: AppEnvironment.defaultSky,
+      house: AppHouse.defaultHouse,
+    );
+    _prefs.setInt(_keySeason, AppSeason.normal.index);
+    _prefs.setInt(_keyEnvironment, AppEnvironment.defaultSky.index);
+    _prefs.setInt(_keyHouse, AppHouse.defaultHouse.index);
+    debugPrint('[ThemeNotifier] resetToDefault() — season: normal, env: defaultSky, house: defaultHouse');
+  }
 }
 
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeState>((ref) {
